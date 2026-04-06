@@ -1,0 +1,127 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "bjornpfrengle@gmail.com" && request.auth.token.email_verified == true));
+    }
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+    function isValidString(field, minLen, maxLen) {
+      return request.resource.data[field] is string &&
+        request.resource.data[field].size() >= minLen &&
+        request.resource.data[field].size() <= maxLen;
+    }
+    function isValidOptionalString(field, minLen, maxLen) {
+      return !(field in request.resource.data) ||
+             (request.resource.data[field] is string &&
+              request.resource.data[field].size() >= minLen &&
+              request.resource.data[field].size() <= maxLen);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    function isValidUser() {
+      return hasOnlyAllowedFields(['uid', 'displayName', 'photoURL', 'role', 'socialHandle', 'catName', 'battleCry', 'catName2', 'battleCry2', 'catThumbnailUrl', 'catThumbnailUrl2']) &&
+             request.resource.data.uid == request.auth.uid &&
+             isValidOptionalString('displayName', 0, 100) &&
+             isValidOptionalString('photoURL', 0, 1048576) &&
+             isValidOptionalString('socialHandle', 0, 100) &&
+             isValidOptionalString('catName', 0, 50) &&
+             isValidOptionalString('battleCry', 0, 100) &&
+             isValidOptionalString('catName2', 0, 50) &&
+             isValidOptionalString('battleCry2', 0, 100) &&
+             isValidOptionalString('catThumbnailUrl', 0, 1000) &&
+             isValidOptionalString('catThumbnailUrl2', 0, 1000) &&
+             request.resource.data.role in ['admin', 'user'];
+    }
+
+    function isValidComment() {
+      return hasOnlyAllowedFields(['text', 'userId', 'userName', 'userAvatar', 'catId', 'createdAt', 'likes']) &&
+             isValidString('text', 1, 1000) &&
+             request.resource.data.userId == request.auth.uid &&
+             isValidString('userName', 1, 100) &&
+             isValidOptionalString('userAvatar', 0, 1048576) &&
+             isValidString('catId', 1, 100) &&
+             request.resource.data.createdAt is timestamp &&
+             request.resource.data.likes is number;
+    }
+
+    function isValidCat() {
+      return hasOnlyAllowedFields(['ownerId', 'name', 'cry', 'videoUrl', 'thumbnailUrl', 'score', 'createdAt']) &&
+             request.resource.data.ownerId == request.auth.uid &&
+             isValidString('name', 1, 50) &&
+             isValidOptionalString('cry', 0, 100) &&
+             isValidString('videoUrl', 1, 1000) &&
+             isValidOptionalString('thumbnailUrl', 0, 1000) &&
+             request.resource.data.score is number &&
+             request.resource.data.createdAt is timestamp;
+    }
+
+    function isValidVote() {
+      return hasOnlyAllowedFields(['userId', 'catId', 'createdAt']) &&
+             request.resource.data.userId == request.auth.uid &&
+             isValidString('catId', 1, 100) &&
+             request.resource.data.createdAt is timestamp;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidUser() && ((isOwner(userId) && request.resource.data.role == 'user') || isAdmin());
+      allow update: if isAuthenticated() && isValidUser() && ((isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin());
+    }
+
+    match /comments/{commentId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidComment() && request.resource.data.likes == 0;
+      allow update: if isAuthenticated() && 
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']) &&
+        request.resource.data.likes == resource.data.likes + 1;
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    match /cats/{catId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidCat() && request.resource.data.score == 0;
+      allow update: if isAuthenticated() && 
+        (
+          // Owner can update name, cry, videoUrl but NOT score or createdAt
+          (resource.data.ownerId == request.auth.uid && 
+           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'cry', 'videoUrl']) &&
+           isValidString('name', 1, 50) &&
+           isValidOptionalString('cry', 0, 100) &&
+           isValidString('videoUrl', 1, 1000)) 
+          ||
+          // Anyone can increment score by 1 if they are voting
+          (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['score']) &&
+           request.resource.data.score == resource.data.score + 1 &&
+           // Must create a vote document at the same time
+           !exists(/databases/$(database)/documents/votes/$(request.auth.uid + '_' + catId)) &&
+           existsAfter(/databases/$(database)/documents/votes/$(request.auth.uid + '_' + catId)))
+        );
+      allow delete: if isAuthenticated() && (resource.data.ownerId == request.auth.uid || isAdmin());
+    }
+
+    match /votes/{voteId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidVote() && voteId == request.auth.uid + '_' + request.resource.data.catId;
+      allow update: if false; // Votes cannot be changed
+      allow delete: if false; // Votes cannot be deleted
+    }
+  }
+}

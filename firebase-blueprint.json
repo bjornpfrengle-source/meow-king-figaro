@@ -1,0 +1,72 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user of the application",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "User ID" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user"] }
+      },
+      "required": ["uid", "role"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "A chat message in the community hub",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string", "description": "Message content" },
+        "userId": { "type": "string", "description": "ID of the user who sent the message" },
+        "userName": { "type": "string", "description": "Name of the user" },
+        "userAvatar": { "type": "string", "description": "Avatar URL of the user" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp of creation" }
+      },
+      "required": ["text", "userId", "userName", "createdAt"]
+    },
+    "Cat": {
+      "title": "Cat",
+      "description": "A cat entered into the arena",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string" },
+        "name": { "type": "string" },
+        "cry": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "score": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "name", "videoUrl", "score", "createdAt"]
+    },
+    "Vote": {
+      "title": "Vote",
+      "description": "A record of a user voting for a cat",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "catId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "catId", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profiles"
+    },
+    "/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/Message" },
+      "description": "Community chat messages"
+    },
+    "/cats/{catId}": {
+      "schema": { "$ref": "#/entities/Cat" },
+      "description": "Cats in the arena"
+    },
+    "/votes/{voteId}": {
+      "schema": { "$ref": "#/entities/Vote" },
+      "description": "Votes cast by users"
+    }
+  }
+}
