@@ -16,8 +16,9 @@ export function ThemeScreen() {
         </div>
       </div>
 
-      {/* Hero Banner */}
-      <div className="px-6 py-6">
+      {/* Hero Banners */}
+      <div className="px-6 py-6 space-y-4">
+        {/* Today's Challenge: Zoomies Champion */}
         <div className="bg-gradient-to-br from-red-400 to-orange-400 rounded-[2rem] p-6 text-white shadow-lg shadow-red-400/20 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
           <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/10 rounded-full blur-xl -ml-10 -mb-10"></div>
@@ -33,11 +34,33 @@ export function ThemeScreen() {
             </p>
             
             <button 
-              onClick={() => navigate('/upload')}
+              onClick={() => navigate('/upload?event=zoomiesChampion')}
               className="w-full bg-white text-red-500 font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2"
             >
               <Camera className="w-5 h-5" />
               ENTER NOW
+            </button>
+          </div>
+        </div>
+
+        {/* Upcoming Challenge: Box Conqueror */}
+        <div className="bg-white border-2 border-neutral-100 rounded-[2rem] p-6 text-neutral-800 shadow-sm relative overflow-hidden">
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="w-4 h-4 text-neutral-400" />
+              <span className="font-bold text-neutral-400 tracking-wide uppercase text-sm">Upcoming Challenge</span>
+            </div>
+            <h2 className="text-2xl font-black mb-2 leading-tight text-neutral-800">Box Conqueror</h2>
+            <p className="text-neutral-500 font-medium mb-6 text-sm">
+              Is your cat the ultimate cardboard commander? Show us their best box-sitting, box-hiding, or box-destroying moments! Starts in 3 days!
+            </p>
+            
+            <button 
+              onClick={() => alert("We'll notify you when Box Conqueror begins!")}
+              className="w-full bg-neutral-100 text-neutral-500 font-black py-4 rounded-2xl active:scale-95 transition-transform flex items-center justify-center gap-2"
+            >
+              <Clock className="w-5 h-5" />
+              UPCOMING
             </button>
           </div>
         </div>

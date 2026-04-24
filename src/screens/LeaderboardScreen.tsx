@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Trophy, Medal, Crown, ChevronDown, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, orderBy, onSnapshot, limit, getDoc, doc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, limit, getDoc, doc, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
 
@@ -13,6 +13,7 @@ interface Leader {
   owner: string;
   score: string;
   img: string;
+  isRealImage?: boolean;
 }
 
 const FALLBACK_LEADERS: Leader[] = [
@@ -36,54 +37,65 @@ export function LeaderboardScreen() {
       return;
     }
 
-    const q = query(collection(db, 'cats'), orderBy('score', 'desc'), limit(10));
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
-      const fetchedLeaders = await Promise.all(snapshot.docs.map(async (catDoc, index) => {
-        const data = catDoc.data();
-        let ownerName = 'Anonymous';
-        let ownerImg = '1514888286974-6c03e2ca1dba'; // Default placeholder
-        let isRealImage = false;
+    const fetchLeaderboard = async () => {
+      try {
+        const q = query(collection(db, 'cats'), orderBy('score', 'desc'), limit(10));
+        const snapshot = await getDocs(q);
+        const fetchedLeaders = await Promise.all(snapshot.docs.map(async (catDoc, index) => {
+          const data = catDoc.data();
+          let ownerName = 'Anonymous';
 
-        if (data.ownerId) {
-          try {
-            const userDoc = await getDoc(doc(db, 'users', data.ownerId));
-            if (userDoc.exists()) {
-              const userData = userDoc.data();
-              ownerName = userData.displayName || 'Anonymous';
-              if (userData.photoURL) {
-                ownerImg = userData.photoURL;
-                isRealImage = true;
+          let catImg = data.thumbnailUrl || data.catThumbnailUrl;
+          
+          if (data.ownerId) {
+            try {
+              const userDoc = await getDoc(doc(db, 'users', data.ownerId));
+              if (userDoc.exists()) {
+                const userData = userDoc.data();
+                ownerName = userData.displayName || 'Anonymous';
+                
+                // If catImg is not in the cats collection, try to get it from the users collection
+                if (!catImg) {
+                  if (data.selectedCatId === 'cat2') {
+                    catImg = userData.catThumbnailUrl2;
+                  } else {
+                    catImg = userData.catThumbnailUrl;
+                  }
+                }
               }
+            } catch (e) {
+              console.error('Error fetching user:', e);
             }
-          } catch (e) {
-            console.error('Error fetching user:', e);
           }
+
+          let finalImg = catImg || '1514888286974-6c03e2ca1dba'; // Default placeholder
+          let finalIsRealImage = catImg ? true : false;
+
+          return {
+            id: catDoc.id,
+            rank: index + 1,
+            name: data.name,
+            owner: ownerName,
+            score: data.score.toString(),
+            img: finalImg,
+            isRealImage: finalIsRealImage
+          };
+        }));
+        
+        if (fetchedLeaders.length > 0) {
+          setLeaders(fetchedLeaders);
+        } else {
+          setLeaders(FALLBACK_LEADERS);
         }
-
-        return {
-          id: catDoc.id,
-          rank: index + 1,
-          name: data.name,
-          owner: ownerName,
-          score: data.score.toString(),
-          img: ownerImg,
-          isRealImage
-        };
-      }));
-      
-      if (fetchedLeaders.length > 0) {
-        setLeaders(fetchedLeaders);
-      } else {
+      } catch (error) {
+        console.error('Error fetching leaderboard:', error);
         setLeaders(FALLBACK_LEADERS);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
-    }, (error) => {
-      console.error('Error fetching leaderboard:', error);
-      setLeaders(FALLBACK_LEADERS);
-      setLoading(false);
-    });
+    };
 
-    return () => unsubscribe();
+    fetchLeaderboard();
   }, [user]);
 
   return (

@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Settings, Award, Plus, Video, ToggleRight, Zap, Trophy, Grid, PlaySquare, Loader2, Camera } from 'lucide-react';
+import { Settings, Award, Plus, Video, ToggleRight, ToggleLeft, Zap, Trophy, Grid, PlaySquare, Loader2, Camera, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, where, orderBy, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -15,6 +15,9 @@ interface Cat {
   videoUrl: string;
   thumbnailUrl?: string;
   score: number;
+  isVerified?: boolean;
+  trimStart?: number;
+  trimEnd?: number;
 }
 
 interface UserProfile {
@@ -30,9 +33,8 @@ interface UserProfile {
 
 export function ProfileScreen() {
   const navigate = useNavigate();
-  const { user, signIn } = useFirebase();
+  const { user, userProfile, signIn } = useFirebase();
   const [myCats, setMyCats] = useState<Cat[]>([]);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -58,6 +60,17 @@ export function ProfileScreen() {
     }
   };
 
+  const handleToggleRepost = async () => {
+    if (!user) return;
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      const newValue = !(userProfile?.allowRepost ?? false);
+      await updateDoc(userRef, { allowRepost: newValue });
+    } catch (error) {
+      console.error('Error updating repost permission:', error);
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       if (!user) {
@@ -66,13 +79,6 @@ export function ProfileScreen() {
       }
 
       try {
-        // Fetch user profile
-        const userRef = doc(db, 'users', user.uid);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-          setUserProfile(userSnap.data() as UserProfile);
-        }
-
         // Fetch user's cats
         const q = query(
           collection(db, 'cats'),
@@ -259,12 +265,30 @@ export function ProfileScreen() {
                   {cat.thumbnailUrl ? (
                     <img src={cat.thumbnailUrl} className="w-full h-full object-cover" />
                   ) : (
-                    <video src={cat.videoUrl} className="w-full h-full object-cover" autoPlay loop muted playsInline />
+                    <video 
+                      src={cat.videoUrl} 
+                      className="w-full h-full object-cover" 
+                      autoPlay loop muted playsInline 
+                      onLoadedMetadata={(e) => {
+                        if (cat.trimStart) e.currentTarget.currentTime = cat.trimStart;
+                      }}
+                      onTimeUpdate={(e) => {
+                        const { trimStart, trimEnd } = cat;
+                        if (trimStart !== undefined && trimEnd !== undefined) {
+                          if (e.currentTarget.currentTime >= trimEnd || e.currentTarget.currentTime < trimStart) {
+                            e.currentTarget.currentTime = trimStart;
+                          }
+                        }
+                      }}
+                    />
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex flex-col justify-end p-3">
                     <div className="flex items-center gap-1 text-white mb-1">
                       <Video className="w-3 h-3" />
-                      <span className="text-[10px] font-bold">{cat.name}</span>
+                      <span className="text-[10px] font-bold flex items-center gap-1">
+                        {cat.name}
+                        {cat.isVerified && <ShieldCheck className="w-3 h-3 text-blue-400" />}
+                      </span>
                     </div>
                     <p className="text-white font-black text-sm">{cat.score} Votes</p>
                   </div>
@@ -297,7 +321,16 @@ export function ProfileScreen() {
                 <p className="text-xs text-neutral-500 mt-1 max-w-[200px]">Allow us to repost your cat's best moments on our socials.</p>
                 <p className="text-[10px] text-pink-500 font-bold mt-1.5 leading-tight pr-4">✨ Your cat could go viral! We'll always tag your profile to boost your cat's fame. 🚀</p>
               </div>
-              <ToggleRight className="w-10 h-10 text-teal-400" strokeWidth={1.5} />
+              <button 
+                onClick={handleToggleRepost}
+                className="active:scale-95 transition-transform"
+              >
+                {userProfile?.allowRepost ? (
+                  <ToggleRight className="w-10 h-10 text-teal-400" strokeWidth={1.5} />
+                ) : (
+                  <ToggleLeft className="w-10 h-10 text-neutral-300" strokeWidth={1.5} />
+                )}
+              </button>
             </div>
           </div>
 
@@ -307,9 +340,9 @@ export function ProfileScreen() {
       <SettingsModal 
         isOpen={isSettingsOpen} 
         onClose={() => setIsSettingsOpen(false)} 
-        userProfile={userProfile}
+        userProfile={userProfile as any}
         currentUser={user}
-        onUpdate={(updated) => setUserProfile(updated)}
+        onUpdate={() => {}}
       />
     </div>
   );

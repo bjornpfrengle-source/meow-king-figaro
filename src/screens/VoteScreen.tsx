@@ -13,6 +13,8 @@ interface Cat {
   cry: string;
   videoUrl: string;
   score: number;
+  trimStart?: number;
+  trimEnd?: number;
 }
 
 const FALLBACK_PAIRS = [
@@ -206,6 +208,17 @@ export function VoteScreen() {
               src={currentPair.cat1.videoUrl} 
               className="absolute inset-0 w-full h-full object-cover"
               autoPlay loop muted playsInline
+              onLoadedMetadata={(e) => {
+                if (currentPair.cat1.trimStart) e.currentTarget.currentTime = currentPair.cat1.trimStart;
+              }}
+              onTimeUpdate={(e) => {
+                const { trimStart, trimEnd } = currentPair.cat1;
+                if (trimStart !== undefined && trimEnd !== undefined) {
+                  if (e.currentTarget.currentTime >= trimEnd || e.currentTarget.currentTime < trimStart) {
+                    e.currentTarget.currentTime = trimStart;
+                  }
+                }
+              }}
             />
           </AnimatePresence>
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30 pointer-events-none"></div>
@@ -239,11 +252,13 @@ export function VoteScreen() {
                 <PawPrint className="w-8 h-8 text-white fill-white drop-shadow-md" />
               </motion.button>
 
-              <div className="relative bg-white/30 backdrop-blur-md border border-white/40 text-white font-black text-xs px-4 py-2.5 rounded-2xl shadow-xl whitespace-nowrap uppercase tracking-wide">
+              <div className="relative bg-black/20 backdrop-blur-sm border border-white/20 text-white font-black text-[10px] px-2 py-2 rounded-xl shadow-xl uppercase tracking-widest flex flex-col items-center text-center leading-tight">
                 <svg className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-2" viewBox="0 0 16 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M8 0L16 8H0L8 0Z" fill="rgba(255,255,255,0.3)" />
+                  <path d="M8 0L16 8H0L8 0Z" fill="rgba(0,0,0,0.2)" />
                 </svg>
-                This one's cuter!
+                <span>This</span>
+                <span>one's</span>
+                <span>cuter</span>
               </div>
 
               <motion.button 
@@ -269,6 +284,17 @@ export function VoteScreen() {
               src={currentPair.cat2.videoUrl} 
               className="absolute inset-0 w-full h-full object-cover"
               autoPlay loop muted playsInline
+              onLoadedMetadata={(e) => {
+                if (currentPair.cat2.trimStart) e.currentTarget.currentTime = currentPair.cat2.trimStart;
+              }}
+              onTimeUpdate={(e) => {
+                const { trimStart, trimEnd } = currentPair.cat2;
+                if (trimStart !== undefined && trimEnd !== undefined) {
+                  if (e.currentTarget.currentTime >= trimEnd || e.currentTarget.currentTime < trimStart) {
+                    e.currentTarget.currentTime = trimStart;
+                  }
+                }
+              }}
             />
           </AnimatePresence>
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/30 pointer-events-none"></div>
@@ -296,11 +322,13 @@ export function VoteScreen() {
                 <MessageCircle className="w-5 h-5 text-white fill-white" />
               </motion.button>
 
-              <div className="relative bg-white/30 backdrop-blur-md border border-white/40 text-white font-black text-xs px-4 py-2.5 rounded-2xl shadow-xl whitespace-nowrap uppercase tracking-wide">
+              <div className="relative bg-black/20 backdrop-blur-sm border border-white/20 text-white font-black text-[10px] px-2 py-2 rounded-xl shadow-xl uppercase tracking-widest flex flex-col items-center text-center leading-tight">
                 <svg className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-2 rotate-180" viewBox="0 0 16 8" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M8 0L16 8H0L8 0Z" fill="rgba(255,255,255,0.3)" />
+                  <path d="M8 0L16 8H0L8 0Z" fill="rgba(0,0,0,0.2)" />
                 </svg>
-                Nah, I'm cuter!
+                <span>Nah!</span>
+                <span>I'm</span>
+                <span>cuter</span>
               </div>
 
               <motion.button 

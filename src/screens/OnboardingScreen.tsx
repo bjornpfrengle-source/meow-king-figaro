@@ -1,15 +1,84 @@
-import { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronRight, Cat, Video, Check } from 'lucide-react';
+import { ChevronRight, Cat, Video, Check, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useFirebase } from '../components/FirebaseProvider';
+import { collection, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from '../firebase';
 
 export function OnboardingScreen() {
   const [step, setStep] = useState(0);
   const navigate = useNavigate();
+  const { user, signIn } = useFirebase();
+  
+  const [catName, setCatName] = useState('');
+  const [catBreed, setCatBreed] = useState('');
+  const [catAge, setCatAge] = useState('');
+  const [catPhotoFile, setCatPhotoFile] = useState<File | null>(null);
+  const [catPhotoPreview, setCatPhotoPreview] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const nextStep = () => {
-    if (step < 3) setStep(step + 1);
-    else navigate('/home');
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setCatPhotoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCatPhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const nextStep = async () => {
+    if (step < 3) {
+      setStep(step + 1);
+    } else {
+      if (!user) {
+        alert("Please sign in to continue!");
+        return;
+      }
+      
+      if (isSaving) return;
+      setIsSaving(true);
+
+      try {
+        let thumbnailUrl = '';
+        if (catPhotoFile) {
+          const storageRef = ref(storage, `thumbnails/${user.uid}_${Date.now()}`);
+          await uploadBytes(storageRef, catPhotoFile);
+          thumbnailUrl = await getDownloadURL(storageRef);
+        }
+
+        if (catName.trim()) {
+          // Save to cats collection
+          await addDoc(collection(db, 'cats'), {
+            name: catName.trim(),
+            breed: catBreed.trim(),
+            approximateAge: catAge,
+            thumbnailUrl: thumbnailUrl,
+            ownerId: user.uid,
+            score: 0,
+            createdAt: serverTimestamp()
+          });
+
+          // Update user profile
+          await updateDoc(doc(db, 'users', user.uid), {
+            catName: catName.trim(),
+            catThumbnailUrl: thumbnailUrl
+          });
+        }
+
+        navigate('/home');
+      } catch (error) {
+        console.error("Error saving cat:", error);
+        alert("Failed to save cat data. Please try again.");
+      } finally {
+        setIsSaving(false);
+      }
+    }
   };
 
   return (
@@ -44,11 +113,49 @@ export function OnboardingScreen() {
               <p className="text-neutral-500 font-medium mb-8">Add your furry competitors.</p>
               
               <div className="bg-white p-6 rounded-3xl shadow-sm border border-pink-50 space-y-4">
-                <div className="w-20 h-20 bg-neutral-100 rounded-full mx-auto flex items-center justify-center text-neutral-400 mb-4">
-                  <Cat className="w-8 h-8" />
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-20 h-20 bg-neutral-100 rounded-full mx-auto flex items-center justify-center text-neutral-400 mb-4 cursor-pointer overflow-hidden relative"
+                >
+                  {catPhotoPreview ? (
+                    <img src={catPhotoPreview} alt="Cat preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <Cat className="w-8 h-8" />
+                  )}
                 </div>
-                <input type="text" placeholder="Cat's Name" className="w-full bg-neutral-50 border border-neutral-200 rounded-2xl px-4 py-3 outline-none focus:border-pink-400 font-medium" />
-                <input type="text" placeholder="Breed (Optional)" className="w-full bg-neutral-50 border border-neutral-200 rounded-2xl px-4 py-3 outline-none focus:border-pink-400 font-medium" />
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handlePhotoChange} 
+                  accept="image/*" 
+                  className="hidden" 
+                />
+                <input 
+                  type="text" 
+                  placeholder="Cat's Name" 
+                  value={catName}
+                  onChange={(e) => setCatName(e.target.value)}
+                  className="w-full bg-neutral-50 border border-neutral-200 rounded-2xl px-4 py-3 outline-none focus:border-pink-400 font-medium" 
+                />
+                <input 
+                  type="text" 
+                  placeholder="Breed (Optional)" 
+                  value={catBreed}
+                  onChange={(e) => setCatBreed(e.target.value)}
+                  className="w-full bg-neutral-50 border border-neutral-200 rounded-2xl px-4 py-3 outline-none focus:border-pink-400 font-medium" 
+                />
+                <select
+                  value={catAge}
+                  onChange={(e) => setCatAge(e.target.value)}
+                  className={`w-full bg-neutral-50 border border-neutral-200 rounded-2xl px-4 py-3 outline-none focus:border-pink-400 font-medium ${!catAge ? 'text-neutral-400' : 'text-neutral-800'}`}
+                >
+                  <option value="" disabled hidden>Approximate Age (Optional)</option>
+                  <option value="Kitten (under 1 year)">Kitten (under 1 year)</option>
+                  <option value="Young (1-5 years)">Young (1-5 years)</option>
+                  <option value="Adult (6-10 years)">Adult (6-10 years)</option>
+                  <option value="Senior (11+ years)">Senior (11+ years)</option>
+                  <option value="Not sure">Not sure</option>
+                </select>
               </div>
             </motion.div>
           )}
@@ -82,12 +189,20 @@ export function OnboardingScreen() {
               <h2 className="text-2xl font-black text-neutral-800 mb-8 text-center">Ready to play?</h2>
               
               <div className="space-y-3 mb-8">
-                <button className="w-full bg-white border-2 border-neutral-200 text-neutral-700 py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2">
-                  Continue with Apple
-                </button>
-                <button className="w-full bg-white border-2 border-neutral-200 text-neutral-700 py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2">
-                  Continue with Google
-                </button>
+                {!user ? (
+                  <>
+                    <button className="w-full bg-white border-2 border-neutral-200 text-neutral-700 py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2">
+                      Continue with Apple
+                    </button>
+                    <button onClick={signIn} className="w-full bg-white border-2 border-neutral-200 text-neutral-700 py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2">
+                      Continue with Google
+                    </button>
+                  </>
+                ) : (
+                  <div className="w-full bg-green-50 border-2 border-green-200 text-green-700 py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2">
+                    <Check className="w-5 h-5" /> Signed in as {user.displayName}
+                  </div>
+                )}
               </div>
 
               <label className="flex items-start gap-3 bg-white p-4 rounded-2xl border border-pink-50">
@@ -113,9 +228,16 @@ export function OnboardingScreen() {
         
         <button 
           onClick={nextStep}
-          className="w-full bg-gradient-to-r from-pink-500 to-orange-400 text-white py-4 rounded-2xl font-black text-lg shadow-lg shadow-pink-500/30 active:scale-95 transition-transform flex items-center justify-center gap-2"
+          disabled={isSaving}
+          className="w-full bg-gradient-to-r from-pink-500 to-orange-400 text-white py-4 rounded-2xl font-black text-lg shadow-lg shadow-pink-500/30 active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-70 disabled:active:scale-100"
         >
-          {step === 3 ? "Let's Go!" : "Continue"} <ChevronRight className="w-5 h-5" />
+          {isSaving ? (
+            <Loader2 className="w-6 h-6 animate-spin" />
+          ) : (
+            <>
+              {step === 3 ? "Let's Go!" : "Continue"} <ChevronRight className="w-5 h-5" />
+            </>
+          )}
         </button>
       </div>
     </div>

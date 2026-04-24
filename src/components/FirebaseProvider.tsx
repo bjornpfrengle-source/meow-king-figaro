@@ -1,10 +1,26 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, signInWithPopup, signOut } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../firebase';
+
+export interface UserProfile {
+  uid: string;
+  displayName: string;
+  photoURL: string;
+  socialHandle?: string;
+  catName?: string;
+  battleCry?: string;
+  catName2?: string;
+  battleCry2?: string;
+  catThumbnailUrl?: string;
+  catThumbnailUrl2?: string;
+  role?: string;
+  allowRepost?: boolean;
+}
 
 interface FirebaseContextType {
   user: User | null;
+  userProfile: UserProfile | null;
   isAuthReady: boolean;
   signIn: () => Promise<void>;
   logOut: () => Promise<void>;
@@ -22,10 +38,13 @@ export function useFirebase() {
 
 export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
+    let unsubscribeProfile: () => void;
+
+    const unsubscribeAuth = auth.onAuthStateChanged(async (currentUser) => {
       setUser(currentUser);
       
       if (currentUser) {
@@ -40,12 +59,25 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
             role: 'user'
           });
         }
+
+        // Listen to profile changes
+        unsubscribeProfile = onSnapshot(userRef, (docSnap) => {
+          if (docSnap.exists()) {
+            setUserProfile(docSnap.data() as UserProfile);
+          }
+        });
+      } else {
+        setUserProfile(null);
+        if (unsubscribeProfile) unsubscribeProfile();
       }
       
       setIsAuthReady(true);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeProfile) unsubscribeProfile();
+    };
   }, []);
 
   const signIn = async () => {
@@ -69,7 +101,7 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <FirebaseContext.Provider value={{ user, isAuthReady, signIn, logOut }}>
+    <FirebaseContext.Provider value={{ user, userProfile, isAuthReady, signIn, logOut }}>
       {children}
     </FirebaseContext.Provider>
   );

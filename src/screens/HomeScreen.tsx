@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Clock, Play, ChevronRight, Sparkles, Gift, Bell, TrendingUp, MessageCircle, Share2, Plus, Star, Flame, PawPrint, Loader2 } from 'lucide-react';
+import { Clock, Play, ChevronRight, Sparkles, Gift, Bell, TrendingUp, MessageCircle, Share2, Plus, Star, Flame, PawPrint, Loader2, Flag, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, orderBy, limit, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDocs, doc, getDoc, addDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 
 interface Cat {
@@ -13,18 +13,49 @@ interface Cat {
   score: number;
   ownerId?: string;
   ownerImg?: string;
+  isVerified?: boolean;
+  trimStart?: number;
+  trimEnd?: number;
 }
+
+import { useFirebase } from '../components/FirebaseProvider';
 
 export function HomeScreen() {
   const navigate = useNavigate();
+  const { user, userProfile, signIn } = useFirebase();
   const [topCats, setTopCats] = useState<Cat[]>([]);
+  const [totalCats, setTotalCats] = useState(1284);
   const [loading, setLoading] = useState(true);
+  const [reportingCatId, setReportingCatId] = useState<string | null>(null);
+
+  const handleReport = async (catId: string) => {
+    if (!user) {
+      await signIn();
+      return;
+    }
+    
+    const reason = window.prompt("Why are you reporting this video? (e.g., AI Generated, Stolen, Not a cat)");
+    if (!reason || !reason.trim()) return;
+
+    try {
+      await addDoc(collection(db, 'reports'), {
+        reporterId: user.uid,
+        catId: catId,
+        reason: reason.trim(),
+        createdAt: serverTimestamp()
+      });
+      alert("Thank you for your report. Our team will review this video shortly.");
+    } catch (error) {
+      console.error("Error submitting report:", error);
+      alert("Failed to submit report. Please try again.");
+    }
+  };
 
   useEffect(() => {
-    const fetchTopCats = async () => {
+    const q = query(collection(db, 'cats'), orderBy('score', 'desc'), limit(4));
+    
+    const unsubscribeTopCats = onSnapshot(q, async (snapshot) => {
       try {
-        const q = query(collection(db, 'cats'), orderBy('score', 'desc'), limit(4));
-        const snapshot = await getDocs(q);
         const fetchedCats = await Promise.all(snapshot.docs.map(async (catDoc) => {
           const data = catDoc.data();
           let ownerImg = undefined;
@@ -42,13 +73,24 @@ export function HomeScreen() {
         }));
         setTopCats(fetchedCats);
       } catch (error) {
-        console.error('Error fetching top cats:', error);
+        console.error('Error processing top cats:', error);
       } finally {
         setLoading(false);
       }
-    };
+    }, (error) => {
+      console.error('Error fetching top cats:', error);
+      setLoading(false);
+    });
 
-    fetchTopCats();
+    const unsubscribeTotal = onSnapshot(collection(db, 'cats'), (snapshot) => {
+      // Start with a base number and add the actual database count to make it look active
+      setTotalCats(1284 + snapshot.size);
+    });
+
+    return () => {
+      unsubscribeTopCats();
+      unsubscribeTotal();
+    };
   }, []);
 
   const trendingCat = topCats.length > 0 ? topCats[0] : null;
@@ -80,8 +122,12 @@ export function HomeScreen() {
             <Bell className="w-6 h-6 text-red-400 fill-red-400" />
             <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-teal-400 rounded-full border-2 border-[#FFF5F5]"></span>
           </button>
-          <button onClick={() => navigate('/profile')} className="active:scale-95 transition-transform">
-            <img src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80" alt="Profile" className="w-10 h-10 rounded-full border-2 border-red-400 object-cover" referrerPolicy="no-referrer" />
+          <button onClick={() => user ? navigate('/profile') : signIn()} className="active:scale-95 transition-transform">
+            {user ? (
+              <img src={userProfile?.photoURL || user.photoURL || "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"} alt="Profile" className="w-10 h-10 rounded-full border-2 border-red-400 object-cover" referrerPolicy="no-referrer" />
+            ) : (
+              <div className="w-10 h-10 rounded-full border-2 border-red-400 bg-white flex items-center justify-center text-red-400 font-bold text-xs">Login</div>
+            )}
           </button>
         </div>
       </div>
@@ -122,6 +168,36 @@ export function HomeScreen() {
           </div>
         </motion.div>
 
+        {/* Upcoming Event Banner */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="rounded-[2rem] shadow-sm relative overflow-hidden mt-4 p-5 bg-white border-2 border-neutral-100"
+        >
+          <div className="absolute -right-2 -bottom-2 opacity-5 pointer-events-none">
+            <Sparkles className="w-24 h-24 text-neutral-800" />
+          </div>
+          
+          <div className="relative z-10 flex flex-row items-center justify-between">
+            <div>
+              <div className="bg-neutral-100 text-neutral-500 w-fit px-2.5 py-1 rounded-full mb-2 text-[10px] font-bold tracking-wider uppercase">
+                Upcoming Theme
+              </div>
+              <h2 className="text-xl font-black mb-1.5 leading-tight text-neutral-800">Box Conqueror</h2>
+              
+              <div className="flex items-center gap-1.5 text-neutral-500">
+                <Clock className="w-3.5 h-3.5" />
+                <span className="text-xs font-bold">Starts in 3d 6h</span>
+              </div>
+            </div>
+
+            <button onClick={() => alert("We'll notify you when Box Conqueror begins!")} className="bg-neutral-100 text-neutral-600 p-3 rounded-full active:scale-95 transition-transform flex-shrink-0">
+              <Bell className="w-5 h-5" />
+            </button>
+          </div>
+        </motion.div>
+
         {/* Stats Bar */}
         <div className="flex items-center justify-between bg-teal-50/80 backdrop-blur-sm px-4 py-3 rounded-full mt-6 mb-8 border border-teal-100">
           <div className="flex items-center">
@@ -132,7 +208,7 @@ export function HomeScreen() {
                 <Plus className="w-4 h-4" />
               </div>
             </div>
-            <span className="ml-3 text-teal-600 font-bold text-sm">1,284 cats competing today</span>
+            <span className="ml-3 text-teal-600 font-bold text-sm">{totalCats.toLocaleString()} cats competing today</span>
           </div>
           <TrendingUp className="w-5 h-5 text-teal-500" />
         </div>
@@ -153,7 +229,21 @@ export function HomeScreen() {
               {recentWinners.map((cat, index) => (
                 <motion.div layout key={cat.id} className="flex flex-col items-center flex-1">
                   <div className={`relative w-full aspect-square rounded-full border-4 p-1 mb-2 ${index === 0 ? 'border-yellow-400' : 'border-neutral-200'}`}>
-                    <video src={cat.videoUrl} className="w-full h-full object-cover rounded-full" autoPlay loop muted playsInline />
+                    <video 
+                      src={cat.videoUrl} 
+                      className="w-full h-full object-cover rounded-full" 
+                      autoPlay loop muted playsInline 
+                      onLoadedMetadata={(e) => {
+                        if (cat.trimStart) e.currentTarget.currentTime = cat.trimStart;
+                      }}
+                      onTimeUpdate={(e) => {
+                        if (cat.trimStart !== undefined && cat.trimEnd !== undefined) {
+                          if (e.currentTarget.currentTime >= cat.trimEnd || e.currentTarget.currentTime < cat.trimStart) {
+                            e.currentTarget.currentTime = cat.trimStart;
+                          }
+                        }
+                      }}
+                    />
                     <div className={`absolute -top-2 -left-2 text-white w-7 h-7 rounded-full flex items-center justify-center font-black text-xs border-2 border-white ${index === 0 ? 'bg-yellow-400 text-neutral-900' : 'bg-teal-400'}`}>
                       #{index + 1}
                     </div>
@@ -163,8 +253,9 @@ export function HomeScreen() {
                       </div>
                     )}
                   </div>
-                  <p className={`font-bold text-xs text-center ${index === 0 ? 'text-red-400 uppercase leading-tight' : 'text-neutral-500'}`}>
+                  <p className={`font-bold text-xs text-center flex items-center justify-center gap-1 ${index === 0 ? 'text-red-400 uppercase leading-tight' : 'text-neutral-500'}`}>
                     {cat.name}
+                    {cat.isVerified && <ShieldCheck className="w-3 h-3 text-blue-500" />}
                   </p>
                 </motion.div>
               ))}
@@ -188,6 +279,16 @@ export function HomeScreen() {
                 src={trendingCat.videoUrl} 
                 className="w-full h-full object-cover"
                 autoPlay loop muted playsInline
+                onLoadedMetadata={(e) => {
+                  if (trendingCat.trimStart) e.currentTarget.currentTime = trendingCat.trimStart;
+                }}
+                onTimeUpdate={(e) => {
+                  if (trendingCat.trimStart !== undefined && trendingCat.trimEnd !== undefined) {
+                    if (e.currentTarget.currentTime >= trendingCat.trimEnd || e.currentTarget.currentTime < trendingCat.trimStart) {
+                      e.currentTarget.currentTime = trendingCat.trimStart;
+                    }
+                  }
+                }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
               
@@ -209,11 +310,17 @@ export function HomeScreen() {
                 <button className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform border border-white/20">
                   <Share2 className="w-5 h-5 text-white" />
                 </button>
+                <button onClick={() => handleReport(trendingCat.id)} className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform border border-white/20">
+                  <Flag className="w-5 h-5 text-red-400" />
+                </button>
               </div>
 
               {/* Bottom Info */}
               <div className="absolute bottom-4 left-4 right-20">
-                <h4 className="text-white font-black text-xl mb-1">{trendingCat.name}</h4>
+                <h4 className="text-white font-black text-xl mb-1 flex items-center gap-2">
+                  {trendingCat.name}
+                  {trendingCat.isVerified && <ShieldCheck className="w-5 h-5 text-blue-400" />}
+                </h4>
                 <p className="text-white/90 text-sm mb-1 leading-tight">{trendingCat.cry}</p>
                 <p className="text-yellow-400 text-sm font-bold flex items-center gap-1">
                   <Flame className="w-4 h-4 fill-yellow-400" /> {trendingCat.score} Votes

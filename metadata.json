@@ -1,5 +1,6 @@
 {
-  "name": "Zoomies Feed",
-  "description": "A mobile-first feed app for pet zoomies.",
-  "requestFramePermissions": []
+  "name": "Cat Chaos Arena",
+  "description": "A mobile app for cat owners glory",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
 }
