@@ -58,9 +58,15 @@ export function VoteScreen() {
       }
 
       try {
-        const q = query(collection(db, 'cats'), orderBy('createdAt', 'desc'));
+        const q = query(collection(db, 'cats'));
         const snapshot = await getDocs(q);
         const fetchedCats = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Cat));
+        
+        // Shuffle the cats array locally for random matchups
+        for (let i = fetchedCats.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [fetchedCats[i], fetchedCats[j]] = [fetchedCats[j], fetchedCats[i]];
+        }
         
         if (fetchedCats.length >= 2) {
           // Create pairs

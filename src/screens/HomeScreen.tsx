@@ -168,35 +168,66 @@ export function HomeScreen() {
           </div>
         </motion.div>
 
-        {/* Upcoming Event Banner */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="rounded-[2rem] shadow-sm relative overflow-hidden mt-4 p-5 bg-white border-2 border-neutral-100"
-        >
-          <div className="absolute -right-2 -bottom-2 opacity-5 pointer-events-none">
-            <Sparkles className="w-24 h-24 text-neutral-800" />
-          </div>
-          
-          <div className="relative z-10 flex flex-row items-center justify-between">
-            <div>
-              <div className="bg-neutral-100 text-neutral-500 w-fit px-2.5 py-1 rounded-full mb-2 text-[10px] font-bold tracking-wider uppercase">
-                Upcoming Theme
-              </div>
-              <h2 className="text-xl font-black mb-1.5 leading-tight text-neutral-800">Box Conqueror</h2>
-              
-              <div className="flex items-center gap-1.5 text-neutral-500">
-                <Clock className="w-3.5 h-3.5" />
-                <span className="text-xs font-bold">Starts in 3d 6h</span>
-              </div>
+        {/* Upcoming Event Banners */}
+        <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 mt-4 pb-2 -mx-6 px-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+            className="min-w-[85%] shrink-0 snap-center rounded-[2rem] shadow-sm relative overflow-hidden p-5 bg-white border-2 border-neutral-100"
+          >
+            <div className="absolute -right-2 -bottom-2 opacity-5 pointer-events-none">
+              <Sparkles className="w-24 h-24 text-neutral-800" />
             </div>
+            
+            <div className="relative z-10 flex flex-row items-center justify-between">
+              <div>
+                <div className="bg-neutral-100 text-neutral-500 w-fit px-2.5 py-1 rounded-full mb-2 text-[10px] font-bold tracking-wider uppercase">
+                  Upcoming Theme
+                </div>
+                <h2 className="text-xl font-black mb-1.5 leading-tight text-neutral-800">Box Conqueror</h2>
+                
+                <div className="flex items-center gap-1.5 text-neutral-500">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span className="text-xs font-bold">Starts in 3d 6h</span>
+                </div>
+              </div>
 
-            <button onClick={() => alert("We'll notify you when Box Conqueror begins!")} className="bg-neutral-100 text-neutral-600 p-3 rounded-full active:scale-95 transition-transform flex-shrink-0">
-              <Bell className="w-5 h-5" />
-            </button>
-          </div>
-        </motion.div>
+              <button onClick={() => alert("We'll notify you when Box Conqueror begins!")} className="bg-neutral-100 text-neutral-600 p-3 rounded-full active:scale-95 transition-transform flex-shrink-0">
+                <Bell className="w-5 h-5" />
+              </button>
+            </div>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+            className="min-w-[85%] shrink-0 snap-center rounded-[2rem] shadow-sm relative overflow-hidden p-5 bg-white border-2 border-neutral-100"
+          >
+            <div className="absolute -right-2 -bottom-2 opacity-5 pointer-events-none">
+              <Sparkles className="w-24 h-24 text-neutral-800" />
+            </div>
+            
+            <div className="relative z-10 flex flex-row items-center justify-between">
+              <div>
+                <div className="bg-neutral-100 text-neutral-500 w-fit px-2.5 py-1 rounded-full mb-2 text-[10px] font-bold tracking-wider uppercase">
+                  Upcoming Theme
+                </div>
+                <h2 className="text-xl font-black mb-1.5 leading-tight text-neutral-800">Lazy Sundays</h2>
+                
+                <div className="flex items-center gap-1.5 text-neutral-500">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span className="text-xs font-bold">Starts in 6d 4h</span>
+                </div>
+              </div>
+
+              <button onClick={() => alert("We'll notify you when Lazy Sundays begins!")} className="bg-neutral-100 text-neutral-600 p-3 rounded-full active:scale-95 transition-transform flex-shrink-0">
+                <Bell className="w-5 h-5" />
+              </button>
+            </div>
+          </motion.div>
+        </div>
 
         {/* Stats Bar */}
         <div className="flex items-center justify-between bg-teal-50/80 backdrop-blur-sm px-4 py-3 rounded-full mt-6 mb-8 border border-teal-100">

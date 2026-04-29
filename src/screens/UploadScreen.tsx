@@ -228,7 +228,6 @@ export function UploadScreen() {
             <input 
               type="file" 
               accept="video/*" 
-              capture="environment" 
               className="hidden" 
               ref={fileInputRef} 
               onChange={handleFileChange} 
