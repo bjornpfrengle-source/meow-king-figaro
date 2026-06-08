@@ -2,5 +2,7 @@
   "name": "Cat Chaos Arena",
   "description": "A mobile app for cat owners glory",
   "requestFramePermissions": [],
-  "majorCapabilities": []
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
