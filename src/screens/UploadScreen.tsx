@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { ChevronLeft, Upload, Sparkles, Info, Wand2, Sticker, Type, Play, Loader2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { collection, addDoc, serverTimestamp, doc, getDoc, query, where, getDocs } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { auth, db, storage } from '../firebase';
@@ -60,6 +60,7 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 
 export function UploadScreen() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, userProfile, signIn } = useFirebase();
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -176,6 +177,7 @@ export function UploadScreen() {
                 selectedCatId: selectedCatId,
                 trimStart: trimStart,
                 trimEnd: duration > 15 ? trimStart + 15 : duration,
+                theme: searchParams.get('event') || 'zoomiesChampion',
                 createdAt: serverTimestamp()
               });
               console.log("Document added to Firestore.");

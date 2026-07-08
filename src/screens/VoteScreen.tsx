@@ -80,6 +80,14 @@ export function VoteScreen() {
           }
           setPairs(newPairs);
           setCurrentPairIndex(0);
+        } else if (fetchedCats.length === 1) {
+          // One real cat — pair with a fallback opponent so it can be voted on
+          setPairs([{
+            id: 0,
+            cat1: fetchedCats[0],
+            cat2: FALLBACK_PAIRS[0].cat2
+          }]);
+          setCurrentPairIndex(0);
         } else {
           setPairs(FALLBACK_PAIRS);
           setCurrentPairIndex(0);

@@ -126,7 +126,7 @@ export function LeaderboardScreen() {
 
       <div className="px-6 pb-24">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="font-black text-lg text-neutral-800">Top Box Conquerors</h2>
+          <h2 className="font-black text-lg text-neutral-800">Top Zoomies Champions</h2>
           <button className="flex items-center gap-1 text-sm font-bold text-pink-500 bg-pink-50 px-3 py-1.5 rounded-full">
             All Cats <ChevronDown className="w-4 h-4" />
           </button>
