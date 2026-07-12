@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Zap, MessageCircle, PawPrint, Loader2 } from 'lucide-react';
+import { Zap, MessageCircle, PawPrint, Loader2, Flag } from 'lucide-react';
 import { CommentsSheet } from '../components/CommentsSheet';
+import { ReportModal } from '../components/ReportModal';
 import { collection, getDocs, getDoc, doc, increment, serverTimestamp, query, orderBy, writeBatch } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
@@ -42,6 +43,7 @@ const FALLBACK_PAIRS = [
 export function VoteScreen() {
   const { user, signIn } = useFirebase();
   const [activeCommentCatId, setActiveCommentCatId] = useState<string | null>(null);
+  const [reportTarget, setReportTarget] = useState<{ id: string; name: string } | null>(null);
   const [hasVoted, setHasVoted] = useState(false);
   const [votedFor, setVotedFor] = useState<string | null>(null);
   const [currentPairIndex, setCurrentPairIndex] = useState(0);
@@ -275,13 +277,23 @@ export function VoteScreen() {
                 <span>cuter</span>
               </div>
 
-              <motion.button 
+              <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setActiveCommentCatId(currentPair.cat1.id)}
                 className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg border border-white/30 relative z-10"
               >
                 <MessageCircle className="w-5 h-5 text-white fill-white" />
               </motion.button>
+
+              {!String(currentPair.cat1.id).startsWith('fallback_') && (
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setReportTarget({ id: currentPair.cat1.id, name: currentPair.cat1.name })}
+                  className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg border border-white/30 relative z-10"
+                >
+                  <Flag className="w-4 h-4 text-white/80" />
+                </motion.button>
+              )}
             </div>
           </div>
         </div>
@@ -328,13 +340,23 @@ export function VoteScreen() {
               </motion.div>
             </AnimatePresence>
             <div className="flex flex-col gap-3 items-center pointer-events-auto">
-              <motion.button 
+              <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setActiveCommentCatId(currentPair.cat2.id)}
                 className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg border border-white/30 relative z-10"
               >
                 <MessageCircle className="w-5 h-5 text-white fill-white" />
               </motion.button>
+
+              {!String(currentPair.cat2.id).startsWith('fallback_') && (
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setReportTarget({ id: currentPair.cat2.id, name: currentPair.cat2.name })}
+                  className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg border border-white/30 relative z-10"
+                >
+                  <Flag className="w-4 h-4 text-white/80" />
+                </motion.button>
+              )}
 
               <div className="relative bg-black/20 backdrop-blur-sm border border-white/20 text-white font-black text-[10px] px-2 py-2 rounded-xl shadow-xl uppercase tracking-widest flex flex-col items-center text-center leading-tight">
                 <svg className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-2 rotate-180" viewBox="0 0 16 8" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -402,6 +424,14 @@ export function VoteScreen() {
       </div>
 
       <CommentsSheet isOpen={!!activeCommentCatId} catId={activeCommentCatId} onClose={() => setActiveCommentCatId(null)} />
+
+      <ReportModal
+        isOpen={!!reportTarget}
+        onClose={() => setReportTarget(null)}
+        targetType="cat"
+        targetId={reportTarget?.id ?? null}
+        targetName={reportTarget?.name}
+      />
     </div>
   );
 }

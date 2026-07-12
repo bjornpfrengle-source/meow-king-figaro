@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Trophy, Medal, Crown, ChevronDown, Loader2 } from 'lucide-react';
+import { Trophy, Medal, Crown, ChevronDown, Loader2, Flag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, orderBy, onSnapshot, limit, getDoc, doc, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
+import { ReportModal } from '../components/ReportModal';
 
 interface Leader {
   id: string;
@@ -29,6 +30,7 @@ export function LeaderboardScreen() {
   const { user, signIn } = useFirebase();
   const [leaders, setLeaders] = useState<Leader[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reportTarget, setReportTarget] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -176,11 +178,29 @@ export function LeaderboardScreen() {
                   <p className="font-black text-pink-500">{leader.score}</p>
                   <p className="text-[10px] font-bold text-neutral-400 uppercase">Pts</p>
                 </div>
+
+                {!/^f\d$/.test(leader.id) && (
+                  <button
+                    onClick={() => setReportTarget({ id: leader.id, name: leader.name })}
+                    className="shrink-0 p-2 text-neutral-300 hover:text-red-500 active:scale-90 transition-all"
+                    aria-label="Report cat"
+                  >
+                    <Flag className="w-4 h-4" />
+                  </button>
+                )}
               </motion.div>
             ))}
           </div>
         )}
       </div>
+
+      <ReportModal
+        isOpen={!!reportTarget}
+        onClose={() => setReportTarget(null)}
+        targetType="cat"
+        targetId={reportTarget?.id ?? null}
+        targetName={reportTarget?.name}
+      />
     </div>
   );
 }

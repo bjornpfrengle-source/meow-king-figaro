@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Heart, Send, Loader2 } from 'lucide-react';
+import { X, Heart, Send, Loader2, Flag } from 'lucide-react';
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, increment } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
+import { ReportModal } from './ReportModal';
 
 interface Comment {
   id: string;
@@ -22,6 +23,7 @@ export function CommentsSheet({ isOpen, onClose, catId }: { isOpen: boolean, onC
   const [submitting, setSubmitting] = useState(false);
   const { user, signIn } = useFirebase();
   const commentsEndRef = useRef<HTMLDivElement>(null);
+  const [reportCommentTarget, setReportCommentTarget] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     if (!isOpen || !catId) return;
@@ -160,6 +162,15 @@ export function CommentsSheet({ isOpen, onClose, catId }: { isOpen: boolean, onC
                         <Heart className="w-5 h-5" />
                       </button>
                       <span className="text-[10px] font-bold">{comment.likes}</span>
+                      {comment.userId !== user?.uid && (
+                        <button
+                          onClick={() => setReportCommentTarget({ id: comment.id, name: comment.userName })}
+                          className="mt-1 active:scale-90 transition-transform hover:text-red-500"
+                          aria-label="Report comment"
+                        >
+                          <Flag className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))
@@ -188,6 +199,14 @@ export function CommentsSheet({ isOpen, onClose, catId }: { isOpen: boolean, onC
               </div>
             </form>
           </motion.div>
+
+          <ReportModal
+            isOpen={!!reportCommentTarget}
+            onClose={() => setReportCommentTarget(null)}
+            targetType="comment"
+            targetId={reportCommentTarget?.id ?? null}
+            targetName={reportCommentTarget ? `Comment by ${reportCommentTarget.name}` : undefined}
+          />
         </>
       )}
     </AnimatePresence>

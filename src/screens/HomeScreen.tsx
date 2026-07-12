@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Clock, Play, ChevronRight, Sparkles, Gift, Bell, TrendingUp, MessageCircle, Share2, Plus, Star, Flame, PawPrint, Loader2, Flag, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, orderBy, limit, getDocs, doc, getDoc, addDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDocs, doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
+import { ReportModal } from '../components/ReportModal';
 
 interface Cat {
   id: string;
@@ -26,30 +27,7 @@ export function HomeScreen() {
   const [topCats, setTopCats] = useState<Cat[]>([]);
   const [totalCats, setTotalCats] = useState(1284);
   const [loading, setLoading] = useState(true);
-  const [reportingCatId, setReportingCatId] = useState<string | null>(null);
-
-  const handleReport = async (catId: string) => {
-    if (!user) {
-      await signIn();
-      return;
-    }
-    
-    const reason = window.prompt("Why are you reporting this video? (e.g., AI Generated, Stolen, Not a cat)");
-    if (!reason || !reason.trim()) return;
-
-    try {
-      await addDoc(collection(db, 'reports'), {
-        reporterId: user.uid,
-        catId: catId,
-        reason: reason.trim(),
-        createdAt: serverTimestamp()
-      });
-      alert("Thank you for your report. Our team will review this video shortly.");
-    } catch (error) {
-      console.error("Error submitting report:", error);
-      alert("Failed to submit report. Please try again.");
-    }
-  };
+  const [reportTarget, setReportTarget] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     const q = query(collection(db, 'cats'), orderBy('score', 'desc'), limit(4));
@@ -341,7 +319,7 @@ export function HomeScreen() {
                 <button className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform border border-white/20">
                   <Share2 className="w-5 h-5 text-white" />
                 </button>
-                <button onClick={() => handleReport(trendingCat.id)} className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform border border-white/20">
+                <button onClick={() => setReportTarget({ id: trendingCat.id, name: trendingCat.name })} className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform border border-white/20">
                   <Flag className="w-5 h-5 text-red-400" />
                 </button>
               </div>
@@ -363,6 +341,14 @@ export function HomeScreen() {
           )}
         </div>
       </div>
+
+      <ReportModal
+        isOpen={!!reportTarget}
+        onClose={() => setReportTarget(null)}
+        targetType="cat"
+        targetId={reportTarget?.id ?? null}
+        targetName={reportTarget?.name}
+      />
     </div>
   );
 }
