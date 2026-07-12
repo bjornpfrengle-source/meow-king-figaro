@@ -6,7 +6,7 @@ export function PremiumScreen() {
   const navigate = useNavigate();
 
   return (
-    <div className="flex-1 overflow-y-auto bg-neutral-900 flex flex-col pb-24 relative">
+    <div className="flex-1 overflow-y-auto overflow-x-hidden bg-neutral-900 flex flex-col pb-24 relative">
       {/* Background Effects */}
       <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-purple-900/50 to-transparent pointer-events-none"></div>
       <div className="absolute -top-24 -right-24 w-64 h-64 bg-fuchsia-600/30 rounded-full blur-3xl pointer-events-none"></div>
