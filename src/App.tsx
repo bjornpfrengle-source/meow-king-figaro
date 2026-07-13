@@ -12,6 +12,7 @@ import { OnboardingScreen } from './screens/OnboardingScreen';
 import { PrizesScreen } from './screens/PrizesScreen';
 import { NotificationsScreen } from './screens/NotificationsScreen';
 import { ChatScreen } from './screens/ChatScreen';
+import { ModerationScreen } from './screens/ModerationScreen';
 
 export default function App() {
   return (
@@ -34,6 +35,7 @@ export default function App() {
             <Route path="/prizes" element={<PrizesScreen />} />
             <Route path="/notifications" element={<NotificationsScreen />} />
             <Route path="/chat" element={<ChatScreen />} />
+            <Route path="/moderation" element={<ModerationScreen />} />
           </Routes>
 
           <BottomNav />

@@ -16,6 +16,7 @@ export interface UserProfile {
   catThumbnailUrl2?: string;
   role?: string;
   allowRepost?: boolean;
+  banned?: boolean;
 }
 
 interface FirebaseContextType {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Settings, Award, Plus, Video, ToggleRight, ToggleLeft, Zap, Trophy, Grid, PlaySquare, Loader2, Camera, ShieldCheck } from 'lucide-react';
+import { Settings, Award, Plus, Video, ToggleRight, ToggleLeft, Zap, Trophy, Grid, PlaySquare, Loader2, Camera, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, where, orderBy, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -106,15 +106,26 @@ export function ProfileScreen() {
         {/* Header */}
         <div className="pt-12 pb-4 px-6 flex justify-between items-center sticky top-0 z-20 bg-[#FFF5F5]/80 backdrop-blur-md">
           <h1 className="text-xl font-black text-neutral-800">Feline Fighter</h1>
-          <button 
-            onClick={() => {
-              if (!user) signIn();
-              else setIsSettingsOpen(true);
-            }}
-            className="p-2 bg-white rounded-full text-neutral-600 shadow-sm border border-pink-50 active:scale-95 transition-transform"
-          >
-            <Settings className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {userProfile?.role === 'admin' && (
+              <button
+                onClick={() => navigate('/moderation')}
+                className="p-2 bg-red-500 rounded-full text-white shadow-sm active:scale-95 transition-transform"
+                aria-label="Moderation panel"
+              >
+                <ShieldAlert className="w-5 h-5" />
+              </button>
+            )}
+            <button
+              onClick={() => {
+                if (!user) signIn();
+                else setIsSettingsOpen(true);
+              }}
+              className="p-2 bg-white rounded-full text-neutral-600 shadow-sm border border-pink-50 active:scale-95 transition-transform"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <div className="px-6 pb-24">

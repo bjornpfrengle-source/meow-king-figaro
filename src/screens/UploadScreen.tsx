@@ -126,6 +126,11 @@ export function UploadScreen() {
       if (!currentUser) return;
     }
 
+    if (userProfile?.banned) {
+      setErrorMsg("Your account has been suspended for violating our community guidelines.");
+      return;
+    }
+
     if (!videoFile || !caption.trim() || !catName.trim() || !selectedCatId) return;
 
     // Check file size (limit to 500MB)
