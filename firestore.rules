@@ -15,6 +15,11 @@ service cloud.firestore {
         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
           request.auth.token.email == "bjornpfrengle@gmail.com");
     }
+    function isBanned() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('banned', false) == true;
+    }
     function hasOnlyAllowedFields(fields) {
       return request.resource.data.keys().hasOnly(fields);
     }
@@ -34,7 +39,7 @@ service cloud.firestore {
     // Domain Validators
     // ===============================================================
     function isValidUser() {
-      return hasOnlyAllowedFields(['uid', 'displayName', 'photoURL', 'role', 'socialHandle', 'catName', 'battleCry', 'catName2', 'battleCry2', 'catThumbnailUrl', 'catThumbnailUrl2', 'allowRepost']) &&
+      return hasOnlyAllowedFields(['uid', 'displayName', 'photoURL', 'role', 'socialHandle', 'catName', 'battleCry', 'catName2', 'battleCry2', 'catThumbnailUrl', 'catThumbnailUrl2', 'allowRepost', 'banned', 'bannedAt', 'bannedBy']) &&
              request.resource.data.uid == request.auth.uid &&
              isValidOptionalString('displayName', 0, 100) &&
              isValidOptionalString('photoURL', 0, 1048576) &&
@@ -46,6 +51,7 @@ service cloud.firestore {
              isValidOptionalString('catThumbnailUrl', 0, 1048576) &&
              isValidOptionalString('catThumbnailUrl2', 0, 1048576) &&
              (!('allowRepost' in request.resource.data) || request.resource.data.allowRepost is bool) &&
+             (!('banned' in request.resource.data) || request.resource.data.banned is bool) &&
              request.resource.data.role in ['admin', 'user'];
     }
 
@@ -61,12 +67,13 @@ service cloud.firestore {
     }
 
     function isValidCat() {
-      return hasOnlyAllowedFields(['ownerId', 'name', 'cry', 'videoUrl', 'thumbnailUrl', 'score', 'createdAt', 'isVerified', 'selectedCatId', 'breed', 'approximateAge', 'trimStart', 'trimEnd']) &&
+      return hasOnlyAllowedFields(['ownerId', 'name', 'cry', 'videoUrl', 'thumbnailUrl', 'score', 'createdAt', 'isVerified', 'selectedCatId', 'breed', 'approximateAge', 'trimStart', 'trimEnd', 'theme']) &&
              request.resource.data.ownerId == request.auth.uid &&
              isValidString('name', 1, 50) &&
              isValidOptionalString('cry', 0, 100) &&
              isValidOptionalString('videoUrl', 1, 2000) &&
              isValidOptionalString('thumbnailUrl', 0, 2000) &&
+             isValidOptionalString('theme', 0, 100) &&
              request.resource.data.score is number &&
              request.resource.data.createdAt is timestamp &&
              (!( 'isVerified' in request.resource.data ) || request.resource.data.isVerified is bool) &&
@@ -78,10 +85,13 @@ service cloud.firestore {
     }
 
     function isValidReport() {
-      return hasOnlyAllowedFields(['reporterId', 'catId', 'reason', 'createdAt']) &&
+      return hasOnlyAllowedFields(['reporterId', 'targetType', 'targetId', 'catId', 'reason', 'details', 'status', 'createdAt']) &&
              request.resource.data.reporterId == request.auth.uid &&
-             isValidString('catId', 1, 100) &&
+             request.resource.data.targetType in ['cat', 'comment'] &&
+             isValidString('targetId', 1, 100) &&
              isValidString('reason', 1, 500) &&
+             isValidOptionalString('details', 0, 1000) &&
+             request.resource.data.status == 'pending' &&
              request.resource.data.createdAt is timestamp;
     }
 
@@ -106,21 +116,26 @@ service cloud.firestore {
     // ===============================================================
     match /users/{userId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isValidUser() && ((isOwner(userId) && request.resource.data.role == 'user') || isAdmin());
-      allow update: if isAuthenticated() && isValidUser() && ((isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin());
+      allow create: if isAuthenticated() && isOwner(userId) && isValidUser() && request.resource.data.role == 'user';
+      // Owner may edit their own profile but cannot change their role or ban status
+      allow update: if isAuthenticated() && isOwner(userId) && isValidUser() &&
+                    request.resource.data.role == resource.data.role &&
+                    request.resource.data.get('banned', false) == resource.data.get('banned', false);
+      // Admins may update any user (assign roles, ban, unban)
+      allow update: if isAdmin();
     }
 
     match /messages/{messageId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isValidMessage();
+      allow create: if isAuthenticated() && !isBanned() && isValidMessage();
       allow update: if false;
       allow delete: if isAdmin();
     }
 
     match /comments/{commentId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isValidComment() && request.resource.data.likes == 0;
-      allow update: if isAuthenticated() && 
+      allow create: if isAuthenticated() && !isBanned() && isValidComment() && request.resource.data.likes == 0;
+      allow update: if isAuthenticated() &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']) &&
         request.resource.data.likes == resource.data.likes + 1;
       allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
@@ -128,15 +143,16 @@ service cloud.firestore {
 
     match /cats/{catId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isValidCat() && request.resource.data.score == 0;
-      allow update: if isAuthenticated() && 
+      allow create: if isAuthenticated() && !isBanned() && isValidCat() && request.resource.data.score == 0;
+      allow update: if isAuthenticated() &&
         (
           // Owner can update name, cry, videoUrl but NOT score or createdAt
-          (resource.data.ownerId == request.auth.uid && 
-           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'cry', 'videoUrl']) &&
+          (resource.data.ownerId == request.auth.uid &&
+           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'cry', 'videoUrl', 'thumbnailUrl']) &&
            isValidString('name', 1, 50) &&
            isValidOptionalString('cry', 0, 100) &&
-           isValidString('videoUrl', 1, 1000)) 
+           isValidOptionalString('videoUrl', 1, 2000) &&
+           isValidOptionalString('thumbnailUrl', 0, 2000))
           ||
           // Anyone can increment score by 1 if they are voting
           (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['score']) &&
@@ -150,7 +166,7 @@ service cloud.firestore {
 
     match /votes/{voteId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isValidVote() && voteId == request.auth.uid + '_' + request.resource.data.catId;
+      allow create: if isAuthenticated() && !isBanned() && isValidVote() && voteId == request.auth.uid + '_' + request.resource.data.catId;
       allow update: if false; // Votes cannot be changed
       allow delete: if isAdmin(); // Allow admin to clear data
     }
@@ -158,7 +174,8 @@ service cloud.firestore {
     match /reports/{reportId} {
       allow read: if isAdmin();
       allow create: if isAuthenticated() && isValidReport();
-      allow update: if false;
+      // Admins resolve reports (set status / resolver metadata)
+      allow update: if isAdmin();
       allow delete: if isAdmin();
     }
   }
