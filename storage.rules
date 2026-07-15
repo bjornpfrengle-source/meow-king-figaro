@@ -1,0 +1,29 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Cat competition videos live under videos/{ownerUid}/{file}
+    match /videos/{userId}/{fileName} {
+      // Download URLs are tokenized, so reads can be open for playback
+      allow read: if true;
+      // Only the signed-in owner may upload, videos only, max 500MB
+      allow write: if request.auth != null
+                   && request.auth.uid == userId
+                   && request.resource.size < 500 * 1024 * 1024
+                   && request.resource.contentType.matches('video/.*');
+    }
+
+    // Cat thumbnail images
+    match /thumbnails/{fileName} {
+      allow read: if true;
+      allow write: if request.auth != null
+                   && request.resource.size < 10 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // Deny everything else by default
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
