@@ -1,3 +1,0 @@
-# Ensure ffmpeg is available on the Railway server for video processing
-[phases.setup]
-aptPkgs = ["ffmpeg"]

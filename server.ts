@@ -15,7 +15,7 @@ ffmpeg.setFfmpegPath(ffmpegPath);
 
 async function startServer() {
   const app = express();
-  const PORT = Number(process.env.PORT) || 3000;
+  const PORT = 3000;
 
   // Uploaded originals are streamed to a temp file, capped at 600MB
   const upload = multer({
