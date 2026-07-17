@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { ChevronLeft, Upload, Sparkles, Info, Wand2, Sticker, Type, Play, Loader2 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { collection, addDoc, serverTimestamp, doc, getDoc, query, where, getDocs } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auth, db, storage } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
 
@@ -73,6 +73,7 @@ export function UploadScreen() {
   const [selectedCatId, setSelectedCatId] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [stage, setStage] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -133,78 +134,82 @@ export function UploadScreen() {
 
     if (!videoFile || !caption.trim() || !catName.trim() || !selectedCatId) return;
 
-    // Check file size (limit to 500MB)
-    if (videoFile.size > 500 * 1024 * 1024) {
-      setErrorMsg("Video is too large. Please upload a video smaller than 500MB.");
+    // Check file size (limit to 600MB)
+    if (videoFile.size > 600 * 1024 * 1024) {
+      setErrorMsg("Video is too large. Please choose a video smaller than 600MB.");
       return;
     }
 
     setErrorMsg(null);
     setSuccessMsg(null);
+    setUploadProgress(0);
     setIsSubmitting(true);
-    
-    try {
-      await new Promise<void>((resolve, reject) => {
-        if (!currentUser) return reject(new Error("No user"));
-        
-        console.log("Starting Firebase Storage upload...");
-        setUploadProgress(5);
-        
-        const fileId = Date.now().toString() + Math.random().toString(36).substring(7);
-        const fileExtension = videoFile.name.split('.').pop() || 'mp4';
-        const storageRef = ref(storage, `videos/${currentUser.uid}/${fileId}.${fileExtension}`);
-        
-        const uploadTask = uploadBytesResumable(storageRef, videoFile);
-        
-        uploadTask.on('state_changed', 
-          (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            setUploadProgress(Math.round(progress));
-          }, 
-          (error) => {
-            console.error("Firebase Storage upload error:", error);
-            reject(error);
-          }, 
-          async () => {
-            try {
-              console.log("Upload complete. Getting download URL...");
-              const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
-              console.log("Download URL:", downloadUrl);
 
-              // Add document to Firestore
-              console.log("Adding document to Firestore...");
-              await addDoc(collection(db, 'cats'), {
-                ownerId: currentUser.uid,
-                name: catName.trim(),
-                cry: caption.trim(),
-                videoUrl: downloadUrl,
-                score: 0,
-                selectedCatId: selectedCatId,
-                trimStart: trimStart,
-                trimEnd: duration > 15 ? trimStart + 15 : duration,
-                theme: searchParams.get('event') || 'zoomiesChampion',
-                createdAt: serverTimestamp()
-              });
-              console.log("Document added to Firestore.");
-              resolve();
-            } catch (error: any) {
-              console.error("Error adding document to Firestore:", error);
-              reject(error);
-            }
+    try {
+      // The end of the selected 15s window
+      const trimEndVal = duration > 15 ? trimStart + 15 : (duration || 15);
+
+      // 1. Send the raw video to the server to trim + web-optimize it
+      setStage('Uploading video…');
+      const processedBlob = await new Promise<Blob>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/process-video');
+        xhr.responseType = 'blob';
+        xhr.timeout = 5 * 60 * 1000; // 5 min ceiling
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) setUploadProgress(Math.round((e.loaded / e.total) * 100));
+        };
+        xhr.upload.onload = () => setStage('Optimizing your clip…');
+        xhr.onload = () => {
+          if (xhr.status === 200 && xhr.response) {
+            resolve(xhr.response as Blob);
+          } else {
+            reject(new Error('We couldn’t process that video. Please try another clip.'));
           }
-        );
+        };
+        xhr.onerror = () => reject(new Error('Network error during upload. Please try again.'));
+        xhr.ontimeout = () => reject(new Error('That took too long — try a shorter clip or a stronger connection.'));
+
+        const fd = new FormData();
+        fd.append('trimStart', String(trimStart));
+        fd.append('trimEnd', String(trimEndVal));
+        fd.append('video', videoFile);
+        xhr.send(fd);
+      });
+
+      // 2. Upload the small optimized clip to Firebase Storage
+      setStage('Finishing up…');
+      const fileId = Date.now().toString() + Math.random().toString(36).substring(7);
+      const storageRef = ref(storage, `videos/${currentUser.uid}/${fileId}.mp4`);
+      await uploadBytes(storageRef, processedBlob, { contentType: 'video/mp4' });
+      const downloadUrl = await getDownloadURL(storageRef);
+
+      // 3. Create the cat document. The clip is already trimmed, so it plays
+      //    from the start and loops on its own — no trim metadata needed.
+      await addDoc(collection(db, 'cats'), {
+        ownerId: currentUser.uid,
+        name: catName.trim(),
+        cry: caption.trim(),
+        videoUrl: downloadUrl,
+        score: 0,
+        selectedCatId: selectedCatId,
+        trimStart: 0,
+        theme: searchParams.get('event') || 'zoomiesChampion',
+        createdAt: serverTimestamp()
       });
 
       setSuccessMsg('Entry submitted successfully! 🎉');
       setTimeout(() => {
         handleRetake();
         setCaption('');
+        setStage('');
         navigate('/home');
       }, 1500);
     } catch (error: any) {
       console.error('Error uploading cat:', error);
       setErrorMsg(error.message || 'Upload failed — please check your connection and try again.');
       setIsSubmitting(false);
+      setStage('');
     }
   };
 
@@ -432,7 +437,7 @@ export function UploadScreen() {
               <div className="flex flex-col items-center justify-center w-full">
                 <div className="flex items-center gap-2">
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  <span className="text-sm">Uploading your chaos... (this may take a few seconds)</span>
+                  <span className="text-sm">{stage || 'Uploading your chaos…'}</span>
                 </div>
                 <div className="w-full bg-teal-900/20 rounded-full h-1.5 mt-2 overflow-hidden">
                   <div 
