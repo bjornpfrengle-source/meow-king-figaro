@@ -32,8 +32,7 @@ export function HomeScreen() {
   const [activeCommentCatId, setActiveCommentCatId] = useState<string | null>(null);
   const trendingVideoRef = useRef<HTMLVideoElement>(null);
 
-  const enterFullscreen = (ref: React.RefObject<HTMLVideoElement>, trimStart: number = 0) => {
-    const v = ref.current as any;
+  const playFullscreen = (v: any, trimStart: number = 0) => {
     if (!v) return;
     try {
       v.loop = true;
@@ -52,6 +51,10 @@ export function HomeScreen() {
     document.addEventListener('fullscreenchange', onFsChange);
     if (v.webkitEnterFullscreen) v.webkitEnterFullscreen();
     else if (v.requestFullscreen) v.requestFullscreen();
+  };
+
+  const enterFullscreen = (ref: React.RefObject<HTMLVideoElement>, trimStart: number = 0) => {
+    playFullscreen(ref.current, trimStart);
   };
 
   useEffect(() => {
@@ -251,7 +254,7 @@ export function HomeScreen() {
         <div className="mb-8">
           <div className="flex justify-between items-end mb-4">
             <h3 className="text-2xl font-black text-neutral-800">Recent Winners</h3>
-            <span className="text-sm text-red-400 font-bold">See Hall of Fame</span>
+            <button onClick={() => navigate('/hall-of-fame')} className="text-sm text-red-400 font-bold active:scale-95 transition-transform">See Hall of Fame</button>
           </div>
           
           {loading ? (
@@ -263,10 +266,11 @@ export function HomeScreen() {
               {recentWinners.map((cat, index) => (
                 <motion.div layout key={cat.id} className="flex flex-col items-center flex-1">
                   <div className={`relative w-full aspect-square rounded-full border-4 p-1 mb-2 ${index === 0 ? 'border-yellow-400' : 'border-neutral-200'}`}>
-                    <video 
-                      src={cat.videoUrl} 
-                      className="w-full h-full object-cover rounded-full" 
-                      autoPlay loop muted playsInline 
+                    <video
+                      src={cat.videoUrl}
+                      className="w-full h-full object-cover rounded-full cursor-pointer"
+                      autoPlay loop muted playsInline
+                      onClick={(e) => playFullscreen(e.currentTarget, cat.trimStart)}
                       onLoadedMetadata={(e) => {
                         if (cat.trimStart) e.currentTarget.currentTime = cat.trimStart;
                       }}

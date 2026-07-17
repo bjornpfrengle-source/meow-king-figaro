@@ -14,6 +14,7 @@ import { NotificationsScreen } from './screens/NotificationsScreen';
 import { ChatScreen } from './screens/ChatScreen';
 import { ModerationScreen } from './screens/ModerationScreen';
 import { TermsScreen } from './screens/TermsScreen';
+import { HallOfFameScreen } from './screens/HallOfFameScreen';
 
 export default function App() {
   return (
@@ -38,6 +39,7 @@ export default function App() {
             <Route path="/chat" element={<ChatScreen />} />
             <Route path="/moderation" element={<ModerationScreen />} />
             <Route path="/terms" element={<TermsScreen />} />
+            <Route path="/hall-of-fame" element={<HallOfFameScreen />} />
           </Routes>
 
           <BottomNav />
