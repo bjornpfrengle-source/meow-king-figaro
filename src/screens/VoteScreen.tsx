@@ -47,9 +47,27 @@ export function VoteScreen() {
   const video1Ref = useRef<HTMLVideoElement>(null);
   const video2Ref = useRef<HTMLVideoElement>(null);
 
-  const enterFullscreen = (ref: React.RefObject<HTMLVideoElement>) => {
+  const enterFullscreen = (ref: React.RefObject<HTMLVideoElement>, trimStart: number = 0) => {
     const v = ref.current as any;
     if (!v) return;
+    // Restart from the beginning and turn sound on for fullscreen viewing
+    try {
+      v.currentTime = trimStart || 0;
+      v.muted = false;
+      const playPromise = v.play();
+      if (playPromise && playPromise.catch) playPromise.catch(() => {});
+    } catch (e) { /* ignore */ }
+    // Re-mute once the user leaves fullscreen so the split view stays silent
+    const remute = () => {
+      v.muted = true;
+      v.removeEventListener('webkitendfullscreen', remute);
+      document.removeEventListener('fullscreenchange', onFsChange);
+    };
+    const onFsChange = () => {
+      if (!document.fullscreenElement) remute();
+    };
+    v.addEventListener('webkitendfullscreen', remute);
+    document.addEventListener('fullscreenchange', onFsChange);
     if (v.webkitEnterFullscreen) {
       v.webkitEnterFullscreen();
     } else if (v.requestFullscreen) {
@@ -302,7 +320,7 @@ export function VoteScreen() {
           {/* Fullscreen — top-left corner of the top video */}
           <motion.button
             whileTap={{ scale: 0.9 }}
-            onClick={() => enterFullscreen(video1Ref)}
+            onClick={() => enterFullscreen(video1Ref, currentPair.cat1.trimStart)}
             className="absolute top-3 left-3 w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg border border-white/30 z-20"
             aria-label="View full screen"
           >
@@ -399,7 +417,7 @@ export function VoteScreen() {
           {/* Fullscreen — bottom-left corner of the bottom video */}
           <motion.button
             whileTap={{ scale: 0.9 }}
-            onClick={() => enterFullscreen(video2Ref)}
+            onClick={() => enterFullscreen(video2Ref, currentPair.cat2.trimStart)}
             className="absolute bottom-3 left-3 w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg border border-white/30 z-20"
             aria-label="View full screen"
           >
