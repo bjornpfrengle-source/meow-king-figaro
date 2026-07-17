@@ -52,15 +52,24 @@ export function VoteScreen() {
     if (!v) return;
     // Restart from the beginning and turn sound on for fullscreen viewing
     try {
+      v.loop = true;
       v.currentTime = trimStart || 0;
       v.muted = false;
       const playPromise = v.play();
       if (playPromise && playPromise.catch) playPromise.catch(() => {});
     } catch (e) { /* ignore */ }
+    // Fallback loop: if the clip ever reaches the end, restart it from the top
+    const onEnded = () => {
+      v.currentTime = trimStart || 0;
+      const p = v.play();
+      if (p && p.catch) p.catch(() => {});
+    };
+    v.addEventListener('ended', onEnded);
     // Re-mute once the user leaves fullscreen so the split view stays silent
     const remute = () => {
       v.muted = true;
       v.removeEventListener('webkitendfullscreen', remute);
+      v.removeEventListener('ended', onEnded);
       document.removeEventListener('fullscreenchange', onFsChange);
     };
     const onFsChange = () => {
