@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Settings, Award, Plus, Video, ToggleRight, ToggleLeft, Zap, Trophy, Grid, PlaySquare, Loader2, Camera, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { Settings, Award, Plus, Video, ToggleRight, ToggleLeft, Zap, Trophy, Grid, PlaySquare, Loader2, Camera, ShieldCheck, ShieldAlert, CalendarClock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, where, orderBy, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -108,13 +108,22 @@ export function ProfileScreen() {
           <h1 className="text-xl font-black text-neutral-800">Feline Fighter</h1>
           <div className="flex items-center gap-2">
             {userProfile?.role === 'admin' && (
-              <button
-                onClick={() => navigate('/moderation')}
-                className="p-2 bg-red-500 rounded-full text-white shadow-sm active:scale-95 transition-transform"
-                aria-label="Moderation panel"
-              >
-                <ShieldAlert className="w-5 h-5" />
-              </button>
+              <>
+                <button
+                  onClick={() => navigate('/admin/themes')}
+                  className="p-2 bg-teal-500 rounded-full text-white shadow-sm active:scale-95 transition-transform"
+                  aria-label="Themes roster"
+                >
+                  <CalendarClock className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => navigate('/moderation')}
+                  className="p-2 bg-red-500 rounded-full text-white shadow-sm active:scale-95 transition-transform"
+                  aria-label="Moderation panel"
+                >
+                  <ShieldAlert className="w-5 h-5" />
+                </button>
+              </>
             )}
             <button
               onClick={() => {

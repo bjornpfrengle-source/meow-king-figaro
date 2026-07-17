@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { Clock, Play, ChevronRight, Sparkles, Gift, Bell, TrendingUp, MessageCircle, Share2, Plus, Star, Flame, PawPrint, Loader2, Flag, ShieldCheck, Maximize2 } from 'lucide-react';
 import { CommentsSheet } from '../components/CommentsSheet';
+import { useThemes, Countdown } from '../components/themes';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, orderBy, limit, getDocs, doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -25,6 +26,7 @@ import { useFirebase } from '../components/FirebaseProvider';
 export function HomeScreen() {
   const navigate = useNavigate();
   const { user, userProfile, signIn } = useFirebase();
+  const { active, upcoming } = useThemes();
   const [topCats, setTopCats] = useState<Cat[]>([]);
   const [totalCats, setTotalCats] = useState(1284);
   const [loading, setLoading] = useState(true);
@@ -154,20 +156,27 @@ export function HomeScreen() {
               <div className="bg-white/20 w-fit px-3 py-1 rounded-full backdrop-blur-sm mb-3 text-xs font-bold tracking-wider uppercase">
                 Daily Theme
               </div>
-              <h2 className="text-3xl font-black mb-2 leading-tight">Zoomies Champion</h2>
-              
-              <motion.div 
+              <h2 className="text-3xl font-black mb-2 leading-tight">{active ? active.title : 'No active theme'}</h2>
+
+              <motion.div
                 animate={{ opacity: [1, 0.7, 1] }}
                 transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                 className="flex items-center gap-1.5 text-white/90"
               >
                 <Clock className="w-4 h-4" />
-                <span className="text-sm font-bold">23h 45m left</span>
+                {active ? (
+                  <span className="text-sm font-bold"><Countdown toMs={active.endMs} /> left</span>
+                ) : (
+                  <span className="text-sm font-bold">New challenge coming soon</span>
+                )}
               </motion.div>
             </div>
 
             <div className="mt-8 flex justify-end">
-              <button onClick={() => navigate('/upload')} className="bg-white text-red-400 px-6 py-3 rounded-full font-black text-sm shadow-md active:scale-95 transition-transform">
+              <button
+                onClick={() => navigate(active ? `/upload?event=${encodeURIComponent(active.slug)}` : '/theme')}
+                className="bg-white text-red-400 px-6 py-3 rounded-full font-black text-sm shadow-md active:scale-95 transition-transform"
+              >
                 ENTER NOW
               </button>
             </div>
@@ -175,65 +184,41 @@ export function HomeScreen() {
         </motion.div>
 
         {/* Upcoming Event Banners */}
-        <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 mt-4 pb-2 -mx-6 px-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-            className="min-w-[85%] shrink-0 snap-center rounded-[2rem] shadow-sm relative overflow-hidden p-5 bg-white border-2 border-neutral-100"
-          >
-            <div className="absolute -right-2 -bottom-2 opacity-5 pointer-events-none">
-              <Sparkles className="w-24 h-24 text-neutral-800" />
-            </div>
-            
-            <div className="relative z-10 flex flex-row items-center justify-between">
-              <div>
-                <div className="bg-neutral-100 text-neutral-500 w-fit px-2.5 py-1 rounded-full mb-2 text-[10px] font-bold tracking-wider uppercase">
-                  Upcoming Theme
+        {upcoming.length > 0 && (
+          <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 mt-4 pb-2 -mx-6 px-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            {upcoming.map((t, i) => (
+              <motion.div
+                key={t.id}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 * (i + 1) }}
+                className="min-w-[85%] shrink-0 snap-center rounded-[2rem] shadow-sm relative overflow-hidden p-5 bg-white border-2 border-neutral-100"
+              >
+                <div className="absolute -right-2 -bottom-2 opacity-5 pointer-events-none">
+                  <Sparkles className="w-24 h-24 text-neutral-800" />
                 </div>
-                <h2 className="text-xl font-black mb-1.5 leading-tight text-neutral-800">Box Conqueror</h2>
-                
-                <div className="flex items-center gap-1.5 text-neutral-500">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span className="text-xs font-bold">Starts in 3d 6h</span>
-                </div>
-              </div>
 
-              <button onClick={() => alert("We'll notify you when Box Conqueror begins!")} className="bg-neutral-100 text-neutral-600 p-3 rounded-full active:scale-95 transition-transform flex-shrink-0">
-                <Bell className="w-5 h-5" />
-              </button>
-            </div>
-          </motion.div>
+                <div className="relative z-10 flex flex-row items-center justify-between">
+                  <div>
+                    <div className="bg-neutral-100 text-neutral-500 w-fit px-2.5 py-1 rounded-full mb-2 text-[10px] font-bold tracking-wider uppercase">
+                      Upcoming Theme
+                    </div>
+                    <h2 className="text-xl font-black mb-1.5 leading-tight text-neutral-800">{t.title}</h2>
 
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-            className="min-w-[85%] shrink-0 snap-center rounded-[2rem] shadow-sm relative overflow-hidden p-5 bg-white border-2 border-neutral-100"
-          >
-            <div className="absolute -right-2 -bottom-2 opacity-5 pointer-events-none">
-              <Sparkles className="w-24 h-24 text-neutral-800" />
-            </div>
-            
-            <div className="relative z-10 flex flex-row items-center justify-between">
-              <div>
-                <div className="bg-neutral-100 text-neutral-500 w-fit px-2.5 py-1 rounded-full mb-2 text-[10px] font-bold tracking-wider uppercase">
-                  Upcoming Theme
-                </div>
-                <h2 className="text-xl font-black mb-1.5 leading-tight text-neutral-800">Lazy Sundays</h2>
-                
-                <div className="flex items-center gap-1.5 text-neutral-500">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span className="text-xs font-bold">Starts in 6d 4h</span>
-                </div>
-              </div>
+                    <div className="flex items-center gap-1.5 text-neutral-500">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span className="text-xs font-bold">Starts in <Countdown toMs={t.startMs} /></span>
+                    </div>
+                  </div>
 
-              <button onClick={() => alert("We'll notify you when Lazy Sundays begins!")} className="bg-neutral-100 text-neutral-600 p-3 rounded-full active:scale-95 transition-transform flex-shrink-0">
-                <Bell className="w-5 h-5" />
-              </button>
-            </div>
-          </motion.div>
-        </div>
+                  <button onClick={() => navigate('/theme')} className="bg-neutral-100 text-neutral-600 p-3 rounded-full active:scale-95 transition-transform flex-shrink-0">
+                    <Bell className="w-5 h-5" />
+                  </button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
 
         {/* Stats Bar */}
         <div className="flex items-center justify-between bg-teal-50/80 backdrop-blur-sm px-4 py-3 rounded-full mt-6 mb-8 border border-teal-100">

@@ -6,6 +6,7 @@ import { collection, addDoc, serverTimestamp, doc, getDoc, query, where, getDocs
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auth, db, storage } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
+import { useThemes } from '../components/themes';
 
 enum OperationType {
   CREATE = 'create',
@@ -62,6 +63,14 @@ export function UploadScreen() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, userProfile, signIn } = useFirebase();
+  const { active, themes } = useThemes();
+
+  // The theme this entry belongs to: prefer the URL (from "ENTER NOW"), else the
+  // currently active theme, else a generic bucket.
+  const eventSlug = searchParams.get('event');
+  const currentTheme = themes.find((t) => t.slug === eventSlug) || active || null;
+  const themeSlug = currentTheme?.slug || eventSlug || 'general';
+  const themeTitle = currentTheme?.title || 'Open Entry';
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [duration, setDuration] = useState<number>(0);
@@ -184,7 +193,7 @@ export function UploadScreen() {
       await uploadBytes(storageRef, processedBlob, { contentType: 'video/mp4' });
       const downloadUrl = await getDownloadURL(storageRef);
 
-      const theme = searchParams.get('event') || 'zoomiesChampion';
+      const theme = themeSlug;
 
       // Enforce one entry per cat per theme: remove any existing entry for this
       // cat + theme so re-uploading REPLACES it instead of stacking duplicates.
@@ -244,10 +253,10 @@ export function UploadScreen() {
         {/* Theme Info */}
         <div className="bg-gradient-to-r from-teal-400 to-emerald-400 rounded-3xl p-6 mb-6 relative overflow-hidden shadow-lg shadow-teal-500/20">
           <Sparkles className="absolute top-4 right-4 w-6 h-6 text-white/50" />
-          <h2 className="text-teal-50 font-bold text-xs mb-1 uppercase tracking-wider">Today's Theme</h2>
-          <h3 className="text-2xl font-black text-white mb-1">Zoomies Champion</h3>
+          <h2 className="text-teal-50 font-bold text-xs mb-1 uppercase tracking-wider">Entering</h2>
+          <h3 className="text-2xl font-black text-white mb-1">{themeTitle}</h3>
           <p className="text-teal-50 text-sm font-medium">
-            Capture your cat's wildest, most chaotic burst of energy! The more blur, the better.
+            {currentTheme?.description || 'Show off your cat and enter the arena!'}
           </p>
         </div>
 

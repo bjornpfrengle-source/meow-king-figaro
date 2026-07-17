@@ -178,5 +178,11 @@ service cloud.firestore {
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
+
+    match /themes/{themeId} {
+      // Anyone signed in can see the roster; only admins manage it
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
   }
 }
