@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Clock, Play, ChevronRight, Sparkles, Gift, Bell, TrendingUp, MessageCircle, Share2, Plus, Star, Flame, PawPrint, Loader2, Flag, ShieldCheck } from 'lucide-react';
+import { Clock, Play, ChevronRight, Sparkles, Gift, Bell, TrendingUp, MessageCircle, Share2, Plus, Star, Flame, PawPrint, Loader2, Flag, ShieldCheck, Maximize2 } from 'lucide-react';
+import { CommentsSheet } from '../components/CommentsSheet';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, orderBy, limit, getDocs, doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -28,6 +29,30 @@ export function HomeScreen() {
   const [totalCats, setTotalCats] = useState(1284);
   const [loading, setLoading] = useState(true);
   const [reportTarget, setReportTarget] = useState<{ id: string; name: string } | null>(null);
+  const [activeCommentCatId, setActiveCommentCatId] = useState<string | null>(null);
+  const trendingVideoRef = useRef<HTMLVideoElement>(null);
+
+  const enterFullscreen = (ref: React.RefObject<HTMLVideoElement>, trimStart: number = 0) => {
+    const v = ref.current as any;
+    if (!v) return;
+    try {
+      v.loop = true;
+      v.currentTime = trimStart || 0;
+      v.muted = false;
+      const p = v.play();
+      if (p && p.catch) p.catch(() => {});
+    } catch (e) { /* ignore */ }
+    const remute = () => {
+      v.muted = true;
+      v.removeEventListener('webkitendfullscreen', remute);
+      document.removeEventListener('fullscreenchange', onFsChange);
+    };
+    const onFsChange = () => { if (!document.fullscreenElement) remute(); };
+    v.addEventListener('webkitendfullscreen', remute);
+    document.addEventListener('fullscreenchange', onFsChange);
+    if (v.webkitEnterFullscreen) v.webkitEnterFullscreen();
+    else if (v.requestFullscreen) v.requestFullscreen();
+  };
 
   useEffect(() => {
     const q = query(collection(db, 'cats'), orderBy('score', 'desc'), limit(4));
@@ -284,8 +309,9 @@ export function HomeScreen() {
             </div>
           ) : trendingCat ? (
             <div className="relative rounded-3xl overflow-hidden h-[280px] shadow-md">
-              <video 
-                src={trendingCat.videoUrl} 
+              <video
+                ref={trendingVideoRef}
+                src={trendingCat.videoUrl}
                 className="w-full h-full object-cover"
                 autoPlay loop muted playsInline
                 onLoadedMetadata={(e) => {
@@ -301,8 +327,22 @@ export function HomeScreen() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
 
-              {/* Report flag — the only action needed on the showcase video */}
+              {/* Actions: watch fullscreen, comment, report */}
               <div className="absolute right-4 bottom-4 flex flex-col gap-3">
+                <button
+                  onClick={() => enterFullscreen(trendingVideoRef, trendingCat.trimStart)}
+                  className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform border border-white/20"
+                  aria-label="Watch full screen"
+                >
+                  <Maximize2 className="w-5 h-5 text-white" />
+                </button>
+                <button
+                  onClick={() => setActiveCommentCatId(trendingCat.id)}
+                  className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform border border-white/20"
+                  aria-label="Comments"
+                >
+                  <MessageCircle className="w-5 h-5 text-white fill-white" />
+                </button>
                 <button onClick={() => setReportTarget({ id: trendingCat.id, name: trendingCat.name })} className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform border border-white/20">
                   <Flag className="w-5 h-5 text-red-400" />
                 </button>
@@ -332,6 +372,12 @@ export function HomeScreen() {
         targetType="cat"
         targetId={reportTarget?.id ?? null}
         targetName={reportTarget?.name}
+      />
+
+      <CommentsSheet
+        isOpen={!!activeCommentCatId}
+        catId={activeCommentCatId}
+        onClose={() => setActiveCommentCatId(null)}
       />
     </div>
   );
