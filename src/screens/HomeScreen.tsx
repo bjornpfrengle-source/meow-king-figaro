@@ -300,25 +300,9 @@ export function HomeScreen() {
                 }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-              
-              {/* Play Button */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                <button className="w-16 h-16 bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center transition-transform active:scale-95 border border-white/50">
-                  <Play className="w-8 h-8 text-white ml-1 fill-white" />
-                </button>
-              </div>
 
-              {/* Right Actions */}
+              {/* Report flag — the only action needed on the showcase video */}
               <div className="absolute right-4 bottom-4 flex flex-col gap-3">
-                <button className="w-12 h-12 bg-red-400 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform">
-                  <PawPrint className="w-6 h-6 text-white fill-white" />
-                </button>
-                <button className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform border border-white/20">
-                  <MessageCircle className="w-5 h-5 text-white fill-white" />
-                </button>
-                <button className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform border border-white/20">
-                  <Share2 className="w-5 h-5 text-white" />
-                </button>
                 <button onClick={() => setReportTarget({ id: trendingCat.id, name: trendingCat.name })} className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform border border-white/20">
                   <Flag className="w-5 h-5 text-red-400" />
                 </button>
