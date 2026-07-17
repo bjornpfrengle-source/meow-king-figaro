@@ -119,14 +119,14 @@ export function CommentsSheet({ isOpen, onClose, catId }: { isOpen: boolean, onC
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/60 z-[60] backdrop-blur-sm"
+            className="fixed inset-0 bg-black/60 z-[60] backdrop-blur-sm"
           />
           <motion.div 
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="absolute bottom-0 left-0 right-0 h-[70%] bg-white rounded-t-3xl z-[70] flex flex-col overflow-hidden shadow-2xl"
+            className="fixed bottom-0 left-0 right-0 mx-auto max-w-[400px] h-[70%] bg-white rounded-t-3xl z-[70] flex flex-col overflow-hidden shadow-2xl"
           >
             {/* Header */}
             <div className="flex justify-between items-center p-5 border-b border-pink-50 bg-white/80 backdrop-blur-md">

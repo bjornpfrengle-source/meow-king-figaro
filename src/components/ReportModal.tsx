@@ -81,14 +81,14 @@ export function ReportModal({ isOpen, onClose, targetType, targetId, targetName 
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={handleClose}
-            className="absolute inset-0 bg-black/60 z-[80] backdrop-blur-sm"
+            className="fixed inset-0 bg-black/60 z-[80] backdrop-blur-sm"
           />
           <motion.div
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl z-[90] flex flex-col overflow-hidden shadow-2xl max-h-[85%]"
+            className="fixed bottom-0 left-0 right-0 mx-auto max-w-[400px] bg-white rounded-t-3xl z-[90] flex flex-col overflow-hidden shadow-2xl max-h-[85%]"
           >
             {submitted ? (
               <div className="flex flex-col items-center justify-center gap-4 p-10 pb-16 text-center">
