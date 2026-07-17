@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Zap, MessageCircle, PawPrint, Loader2, Flag } from 'lucide-react';
+import { Zap, MessageCircle, PawPrint, Loader2, Flag, Maximize2 } from 'lucide-react';
 import { CommentsSheet } from '../components/CommentsSheet';
 import { ReportModal } from '../components/ReportModal';
 import { collection, getDocs, getDoc, doc, increment, serverTimestamp, query, orderBy, writeBatch } from 'firebase/firestore';
@@ -44,6 +44,18 @@ export function VoteScreen() {
   const { user, signIn } = useFirebase();
   const [activeCommentCatId, setActiveCommentCatId] = useState<string | null>(null);
   const [reportTarget, setReportTarget] = useState<{ id: string; name: string } | null>(null);
+  const video1Ref = useRef<HTMLVideoElement>(null);
+  const video2Ref = useRef<HTMLVideoElement>(null);
+
+  const enterFullscreen = (ref: React.RefObject<HTMLVideoElement>) => {
+    const v = ref.current as any;
+    if (!v) return;
+    if (v.webkitEnterFullscreen) {
+      v.webkitEnterFullscreen();
+    } else if (v.requestFullscreen) {
+      v.requestFullscreen();
+    }
+  };
   const [hasVoted, setHasVoted] = useState(false);
   const [votedFor, setVotedFor] = useState<string | null>(null);
   const [currentPairIndex, setCurrentPairIndex] = useState(0);
@@ -199,14 +211,14 @@ export function VoteScreen() {
 
   return (
     <div className="flex-1 bg-neutral-900 relative overflow-hidden flex flex-col">
-      {/* Header */}
-      <div className="absolute top-0 left-0 w-full pt-6 pb-4 px-6 flex justify-between items-center z-20 pointer-events-none">
-        <div className="bg-black/40 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/10 pointer-events-auto">
-          <span className="text-white font-bold text-sm">Round {currentPairIndex + 1} of {pairs.length}</span>
+      {/* Header — kept subtle/translucent so it doesn't crowd the top video */}
+      <div className="absolute top-0 left-0 w-full pt-3 pb-3 px-4 flex justify-between items-center z-20 pointer-events-none">
+        <div className="bg-black/25 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
+          <span className="text-white/70 font-bold text-xs">Round {currentPairIndex + 1} of {pairs.length}</span>
         </div>
-        <div className="bg-gradient-to-r from-pink-500 to-orange-400 px-3 py-1.5 rounded-full flex items-center gap-1 shadow-lg pointer-events-auto">
-          <Zap className="w-4 h-4 text-white fill-white" />
-          <span className="text-white font-bold text-xs">5 Day Streak!</span>
+        <div className="bg-black/25 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-1 border border-white/10">
+          <Zap className="w-3.5 h-3.5 text-orange-300 fill-orange-300" />
+          <span className="text-white/70 font-bold text-xs">5 Day Streak</span>
         </div>
       </div>
 
@@ -215,13 +227,14 @@ export function VoteScreen() {
         {/* Top Video */}
         <div className="flex-1 relative overflow-hidden border-b-4 border-black">
           <AnimatePresence mode="popLayout">
-            <motion.video 
+            <motion.video
               key={`vid-${currentPair.cat1.id}`}
+              ref={video1Ref}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              src={currentPair.cat1.videoUrl} 
+              src={currentPair.cat1.videoUrl}
               className="absolute inset-0 w-full h-full object-cover"
               autoPlay loop muted playsInline
               onLoadedMetadata={(e) => {
@@ -294,6 +307,15 @@ export function VoteScreen() {
                   <Flag className="w-4 h-4 text-white/80" />
                 </motion.button>
               )}
+
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => enterFullscreen(video1Ref)}
+                className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg border border-white/30 relative z-10"
+                aria-label="View full screen"
+              >
+                <Maximize2 className="w-4 h-4 text-white/90" />
+              </motion.button>
             </div>
           </div>
         </div>
@@ -301,13 +323,14 @@ export function VoteScreen() {
         {/* Bottom Video */}
         <div className="flex-1 relative overflow-hidden">
           <AnimatePresence mode="popLayout">
-            <motion.video 
+            <motion.video
               key={`vid-${currentPair.cat2.id}`}
+              ref={video2Ref}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              src={currentPair.cat2.videoUrl} 
+              src={currentPair.cat2.videoUrl}
               className="absolute inset-0 w-full h-full object-cover"
               autoPlay loop muted playsInline
               onLoadedMetadata={(e) => {
@@ -357,6 +380,15 @@ export function VoteScreen() {
                   <Flag className="w-4 h-4 text-white/80" />
                 </motion.button>
               )}
+
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => enterFullscreen(video2Ref)}
+                className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg border border-white/30 relative z-10"
+                aria-label="View full screen"
+              >
+                <Maximize2 className="w-4 h-4 text-white/90" />
+              </motion.button>
 
               <div className="relative bg-black/20 backdrop-blur-sm border border-white/20 text-white font-black text-[10px] px-2 py-2 rounded-xl shadow-xl uppercase tracking-widest flex flex-col items-center text-center leading-tight">
                 <svg className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-2 rotate-180" viewBox="0 0 16 8" fill="none" xmlns="http://www.w3.org/2000/svg">
