@@ -239,30 +239,25 @@ export function VoteScreen() {
       <div className="flex-1 flex flex-col relative z-10">
         {/* Top Video */}
         <div className="flex-1 relative overflow-hidden border-b-4 border-black">
-          <AnimatePresence mode="popLayout">
-            <motion.video
-              key={`vid-${currentPair.cat1.id}`}
-              ref={video1Ref}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              src={currentPair.cat1.videoUrl}
-              className="absolute inset-0 w-full h-full object-cover"
-              autoPlay loop muted playsInline
-              onLoadedMetadata={(e) => {
-                if (currentPair.cat1.trimStart) e.currentTarget.currentTime = currentPair.cat1.trimStart;
-              }}
-              onTimeUpdate={(e) => {
-                const { trimStart, trimEnd } = currentPair.cat1;
-                if (trimStart !== undefined && trimEnd !== undefined) {
-                  if (e.currentTarget.currentTime >= trimEnd || e.currentTarget.currentTime < trimStart) {
-                    e.currentTarget.currentTime = trimStart;
-                  }
+          <video
+            key={`vid-${currentPair.cat1.id}`}
+            ref={video1Ref}
+            src={currentPair.cat1.videoUrl}
+            className="absolute inset-0 w-full h-full object-cover"
+            autoPlay loop muted playsInline preload="auto"
+            onCanPlay={(e) => { e.currentTarget.play().catch(() => {}); }}
+            onLoadedMetadata={(e) => {
+              if (currentPair.cat1.trimStart) e.currentTarget.currentTime = currentPair.cat1.trimStart;
+            }}
+            onTimeUpdate={(e) => {
+              const { trimStart, trimEnd } = currentPair.cat1;
+              if (trimStart !== undefined && trimEnd !== undefined) {
+                if (e.currentTarget.currentTime >= trimEnd || e.currentTarget.currentTime < trimStart) {
+                  e.currentTarget.currentTime = trimStart;
                 }
-              }}
-            />
-          </AnimatePresence>
+              }
+            }}
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30 pointer-events-none"></div>
           
           <div className="absolute bottom-6 left-6 right-6 flex justify-between items-end pointer-events-none">
@@ -336,30 +331,25 @@ export function VoteScreen() {
 
         {/* Bottom Video */}
         <div className="flex-1 relative overflow-hidden">
-          <AnimatePresence mode="popLayout">
-            <motion.video
-              key={`vid-${currentPair.cat2.id}`}
-              ref={video2Ref}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              src={currentPair.cat2.videoUrl}
-              className="absolute inset-0 w-full h-full object-cover"
-              autoPlay loop muted playsInline
-              onLoadedMetadata={(e) => {
-                if (currentPair.cat2.trimStart) e.currentTarget.currentTime = currentPair.cat2.trimStart;
-              }}
-              onTimeUpdate={(e) => {
-                const { trimStart, trimEnd } = currentPair.cat2;
-                if (trimStart !== undefined && trimEnd !== undefined) {
-                  if (e.currentTarget.currentTime >= trimEnd || e.currentTarget.currentTime < trimStart) {
-                    e.currentTarget.currentTime = trimStart;
-                  }
+          <video
+            key={`vid-${currentPair.cat2.id}`}
+            ref={video2Ref}
+            src={currentPair.cat2.videoUrl}
+            className="absolute inset-0 w-full h-full object-cover"
+            autoPlay loop muted playsInline preload="auto"
+            onCanPlay={(e) => { e.currentTarget.play().catch(() => {}); }}
+            onLoadedMetadata={(e) => {
+              if (currentPair.cat2.trimStart) e.currentTarget.currentTime = currentPair.cat2.trimStart;
+            }}
+            onTimeUpdate={(e) => {
+              const { trimStart, trimEnd } = currentPair.cat2;
+              if (trimStart !== undefined && trimEnd !== undefined) {
+                if (e.currentTarget.currentTime >= trimEnd || e.currentTarget.currentTime < trimStart) {
+                  e.currentTarget.currentTime = trimStart;
                 }
-              }}
-            />
-          </AnimatePresence>
+              }
+            }}
+          />
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/30 pointer-events-none"></div>
           
           <div className="absolute top-6 left-6 right-6 flex justify-between items-start pointer-events-none">

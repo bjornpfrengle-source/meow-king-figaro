@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { ChevronLeft, ChevronRight, Upload, Sparkles, Info, Wand2, Sticker, Type, Play, Loader2 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { collection, addDoc, serverTimestamp, doc, getDoc, query, where, getDocs } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, getDoc, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auth, db, storage } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
@@ -184,6 +184,23 @@ export function UploadScreen() {
       await uploadBytes(storageRef, processedBlob, { contentType: 'video/mp4' });
       const downloadUrl = await getDownloadURL(storageRef);
 
+      const theme = searchParams.get('event') || 'zoomiesChampion';
+
+      // Enforce one entry per cat per theme: remove any existing entry for this
+      // cat + theme so re-uploading REPLACES it instead of stacking duplicates.
+      try {
+        const existingQ = query(
+          collection(db, 'cats'),
+          where('ownerId', '==', currentUser.uid),
+          where('selectedCatId', '==', selectedCatId),
+          where('theme', '==', theme)
+        );
+        const existingSnap = await getDocs(existingQ);
+        await Promise.all(existingSnap.docs.map((d) => deleteDoc(doc(db, 'cats', d.id))));
+      } catch (e) {
+        console.error('Could not clear previous entry:', e);
+      }
+
       // 3. Create the cat document. The clip is already trimmed, so it plays
       //    from the start and loops on its own — no trim metadata needed.
       await addDoc(collection(db, 'cats'), {
@@ -194,7 +211,7 @@ export function UploadScreen() {
         score: 0,
         selectedCatId: selectedCatId,
         trimStart: 0,
-        theme: searchParams.get('event') || 'zoomiesChampion',
+        theme: theme,
         createdAt: serverTimestamp()
       });
 
