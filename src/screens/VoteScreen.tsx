@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Zap, MessageCircle, PawPrint, Loader2, Flag, Maximize2 } from 'lucide-react';
+import { MessageCircle, PawPrint, Loader2, Flag, Maximize2 } from 'lucide-react';
 import { CommentsSheet } from '../components/CommentsSheet';
 import { ReportModal } from '../components/ReportModal';
 import { collection, getDocs, getDoc, doc, increment, serverTimestamp, query, orderBy, writeBatch } from 'firebase/firestore';
@@ -211,17 +211,6 @@ export function VoteScreen() {
 
   return (
     <div className="flex-1 bg-neutral-900 relative overflow-hidden flex flex-col">
-      {/* Header — kept subtle/translucent so it doesn't crowd the top video */}
-      <div className="absolute top-0 left-0 w-full pt-3 pb-3 px-4 flex justify-between items-center z-20 pointer-events-none">
-        <div className="bg-black/25 backdrop-blur-md px-3 py-1 rounded-full border border-white/10">
-          <span className="text-white/70 font-bold text-xs">Round {currentPairIndex + 1} of {pairs.length}</span>
-        </div>
-        <div className="bg-black/25 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-1 border border-white/10">
-          <Zap className="w-3.5 h-3.5 text-orange-300 fill-orange-300" />
-          <span className="text-white/70 font-bold text-xs">5 Day Streak</span>
-        </div>
-      </div>
-
       {/* Videos Container (Split Screen) */}
       <div className="flex-1 flex flex-col relative z-10">
         {/* Top Video */}
@@ -307,17 +296,18 @@ export function VoteScreen() {
                   <Flag className="w-4 h-4 text-white/80" />
                 </motion.button>
               )}
-
-              <motion.button
-                whileTap={{ scale: 0.9 }}
-                onClick={() => enterFullscreen(video1Ref)}
-                className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg border border-white/30 relative z-10"
-                aria-label="View full screen"
-              >
-                <Maximize2 className="w-4 h-4 text-white/90" />
-              </motion.button>
             </div>
           </div>
+
+          {/* Fullscreen — top-left corner of the top video */}
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => enterFullscreen(video1Ref)}
+            className="absolute top-3 left-3 w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg border border-white/30 z-20"
+            aria-label="View full screen"
+          >
+            <Maximize2 className="w-4 h-4 text-white/90" />
+          </motion.button>
         </div>
 
         {/* Bottom Video */}
@@ -381,15 +371,6 @@ export function VoteScreen() {
                 </motion.button>
               )}
 
-              <motion.button
-                whileTap={{ scale: 0.9 }}
-                onClick={() => enterFullscreen(video2Ref)}
-                className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg border border-white/30 relative z-10"
-                aria-label="View full screen"
-              >
-                <Maximize2 className="w-4 h-4 text-white/90" />
-              </motion.button>
-
               <div className="relative bg-black/20 backdrop-blur-sm border border-white/20 text-white font-black text-[10px] px-2 py-2 rounded-xl shadow-xl uppercase tracking-widest flex flex-col items-center text-center leading-tight">
                 <svg className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-2 rotate-180" viewBox="0 0 16 8" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path d="M8 0L16 8H0L8 0Z" fill="rgba(0,0,0,0.2)" />
@@ -414,6 +395,16 @@ export function VoteScreen() {
               </motion.button>
             </div>
           </div>
+
+          {/* Fullscreen — bottom-left corner of the bottom video */}
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => enterFullscreen(video2Ref)}
+            className="absolute bottom-3 left-3 w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg border border-white/30 z-20"
+            aria-label="View full screen"
+          >
+            <Maximize2 className="w-4 h-4 text-white/90" />
+          </motion.button>
         </div>
 
         {/* VS Badge */}
