@@ -13,6 +13,7 @@ import { PrizesScreen } from './screens/PrizesScreen';
 import { NotificationsScreen } from './screens/NotificationsScreen';
 import { ChatScreen } from './screens/ChatScreen';
 import { ModerationScreen } from './screens/ModerationScreen';
+import { TermsScreen } from './screens/TermsScreen';
 
 export default function App() {
   return (
@@ -36,6 +37,7 @@ export default function App() {
             <Route path="/notifications" element={<NotificationsScreen />} />
             <Route path="/chat" element={<ChatScreen />} />
             <Route path="/moderation" element={<ModerationScreen />} />
+            <Route path="/terms" element={<TermsScreen />} />
           </Routes>
 
           <BottomNav />

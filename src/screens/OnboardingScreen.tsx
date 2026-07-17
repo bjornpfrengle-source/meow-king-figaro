@@ -213,6 +213,17 @@ export function OnboardingScreen() {
                   Allow us to repost your cat's best moments on our socials for exposure (you keep all rights).
                 </p>
               </label>
+
+              <p className="text-[11px] text-neutral-500 text-center leading-relaxed mt-4 px-2">
+                By continuing you agree to our{' '}
+                <button
+                  onClick={() => navigate('/terms')}
+                  className="font-bold text-pink-500 underline"
+                >
+                  Terms of Use
+                </button>
+                , including our zero-tolerance policy for objectionable content and abusive users.
+              </p>
             </motion.div>
           )}
         </AnimatePresence>

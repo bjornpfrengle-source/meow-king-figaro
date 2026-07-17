@@ -332,7 +332,7 @@ export function ProfileScreen() {
                 <p className="text-xs text-neutral-500 mt-1 max-w-[200px]">Allow us to repost your cat's best moments on our socials.</p>
                 <p className="text-[10px] text-pink-500 font-bold mt-1.5 leading-tight pr-4">✨ Your cat could go viral! We'll always tag your profile to boost your cat's fame. 🚀</p>
               </div>
-              <button 
+              <button
                 onClick={handleToggleRepost}
                 className="active:scale-95 transition-transform"
               >
@@ -344,6 +344,14 @@ export function ProfileScreen() {
               </button>
             </div>
           </div>
+
+          {/* Legal */}
+          <button
+            onClick={() => navigate('/terms')}
+            className="mt-4 w-full text-center text-xs font-bold text-neutral-400 underline active:scale-95 transition-transform"
+          >
+            Terms of Use
+          </button>
 
         </div>
       </div>
