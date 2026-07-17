@@ -109,25 +109,22 @@ export function VoteScreen() {
           [fetchedCats[i], fetchedCats[j]] = [fetchedCats[j], fetchedCats[i]];
         }
         
-        if (fetchedCats.length >= 2) {
-          // Create pairs
+        if (fetchedCats.length >= 1) {
+          // If there's an odd number of cats, give the leftover a fallback
+          // opponent so EVERY uploaded cat shows up in the battle rotation.
+          const list: Cat[] = [...fetchedCats];
+          if (list.length % 2 !== 0) {
+            list.push(FALLBACK_PAIRS[0].cat2 as Cat);
+          }
           const newPairs = [];
-          for (let i = 0; i < fetchedCats.length - 1; i += 2) {
+          for (let i = 0; i < list.length - 1; i += 2) {
             newPairs.push({
               id: i,
-              cat1: fetchedCats[i],
-              cat2: fetchedCats[i + 1]
+              cat1: list[i],
+              cat2: list[i + 1]
             });
           }
           setPairs(newPairs);
-          setCurrentPairIndex(0);
-        } else if (fetchedCats.length === 1) {
-          // One real cat — pair with a fallback opponent so it can be voted on
-          setPairs([{
-            id: 0,
-            cat1: fetchedCats[0],
-            cat2: FALLBACK_PAIRS[0].cat2
-          }]);
           setCurrentPairIndex(0);
         } else {
           setPairs(FALLBACK_PAIRS);

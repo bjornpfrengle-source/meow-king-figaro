@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { ChevronLeft, Upload, Sparkles, Info, Wand2, Sticker, Type, Play, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Upload, Sparkles, Info, Wand2, Sticker, Type, Play, Loader2 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { collection, addDoc, serverTimestamp, doc, getDoc, query, where, getDocs } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -319,16 +319,23 @@ export function UploadScreen() {
                  <video src={videoUrl} className="w-full object-cover" muted />
               </div>
               
-              <div 
-                className="absolute top-0 bottom-0 bg-white/20 border-x-4 border-teal-400 z-10"
+              <div
+                className="absolute top-0 bottom-0 bg-white/20 border-x-4 border-teal-400 z-10 flex items-center justify-center pointer-events-none"
                 style={{
                   left: `${(trimStart / duration) * 100}%`,
                   width: `${(15 / duration) * 100}%`,
                   boxShadow: '0 0 0 9999px rgba(0,0,0,0.6)'
                 }}
-              />
-              
-              <input 
+              >
+                {/* Visible grab handle so users know where to drag */}
+                <div className="bg-teal-400 rounded-full px-2 py-1 flex items-center gap-1 shadow-lg">
+                  <ChevronLeft className="w-3 h-3 text-white" strokeWidth={3} />
+                  <span className="text-[9px] font-black text-white uppercase tracking-wide">Drag</span>
+                  <ChevronRight className="w-3 h-3 text-white" strokeWidth={3} />
+                </div>
+              </div>
+
+              <input
                 type="range"
                 min={0}
                 max={duration - 15}
@@ -345,7 +352,7 @@ export function UploadScreen() {
               />
             </div>
             <p className="text-xs text-neutral-500 font-medium mt-2">
-              Slide to select the best 15 seconds of chaos.
+              Drag the highlighted window to pick your best 15 seconds.
             </p>
           </div>
         )}
