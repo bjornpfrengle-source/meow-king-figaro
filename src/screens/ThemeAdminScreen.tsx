@@ -17,7 +17,7 @@ function fmt(ms: number) {
 
 export function ThemeAdminScreen() {
   const navigate = useNavigate();
-  const { userProfile, isAuthReady } = useFirebase();
+  const { isAuthReady, isAdmin } = useFirebase();
   const { themes, loading } = useThemes();
 
   const [title, setTitle] = useState('');
@@ -27,8 +27,6 @@ export function ThemeAdminScreen() {
   const [end, setEnd] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-
-  const isAdmin = userProfile?.role === 'admin';
 
   const handleAdd = async () => {
     setError('');

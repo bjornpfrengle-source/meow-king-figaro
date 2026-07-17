@@ -33,7 +33,7 @@ interface UserProfile {
 
 export function ProfileScreen() {
   const navigate = useNavigate();
-  const { user, userProfile, signIn } = useFirebase();
+  const { user, userProfile, signIn, isAdmin } = useFirebase();
   const [myCats, setMyCats] = useState<Cat[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -107,7 +107,7 @@ export function ProfileScreen() {
         <div className="pt-12 pb-4 px-6 flex justify-between items-center sticky top-0 z-20 bg-[#FFF5F5]/80 backdrop-blur-md">
           <h1 className="text-xl font-black text-neutral-800">Feline Fighter</h1>
           <div className="flex items-center gap-2">
-            {userProfile?.role === 'admin' && (
+            {isAdmin && (
               <>
                 <button
                   onClick={() => navigate('/admin/themes')}

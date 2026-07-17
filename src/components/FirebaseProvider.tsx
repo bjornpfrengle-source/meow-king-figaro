@@ -19,10 +19,14 @@ export interface UserProfile {
   banned?: boolean;
 }
 
+// Owner account that is always treated as an admin (matches firestore.rules)
+const OWNER_EMAIL = 'bjornpfrengle@gmail.com';
+
 interface FirebaseContextType {
   user: User | null;
   userProfile: UserProfile | null;
   isAuthReady: boolean;
+  isAdmin: boolean;
   signIn: () => Promise<void>;
   logOut: () => Promise<void>;
 }
@@ -101,8 +105,10 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const isAdmin = userProfile?.role === 'admin' || user?.email === OWNER_EMAIL;
+
   return (
-    <FirebaseContext.Provider value={{ user, userProfile, isAuthReady, signIn, logOut }}>
+    <FirebaseContext.Provider value={{ user, userProfile, isAuthReady, isAdmin, signIn, logOut }}>
       {children}
     </FirebaseContext.Provider>
   );

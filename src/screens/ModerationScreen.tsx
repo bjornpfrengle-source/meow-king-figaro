@@ -30,13 +30,11 @@ interface TargetInfo {
 
 export function ModerationScreen() {
   const navigate = useNavigate();
-  const { user, userProfile, isAuthReady } = useFirebase();
+  const { user, isAuthReady, isAdmin } = useFirebase();
   const [reports, setReports] = useState<Report[]>([]);
   const [targets, setTargets] = useState<Record<string, TargetInfo>>({});
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
-
-  const isAdmin = userProfile?.role === 'admin';
 
   useEffect(() => {
     if (!isAdmin) return;
