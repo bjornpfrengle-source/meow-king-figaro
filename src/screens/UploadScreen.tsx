@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { ChevronLeft, ChevronRight, Upload, Sparkles, Info, Wand2, Sticker, Type, Play, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Upload, Sparkles, Info, Loader2 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { collection, addDoc, serverTimestamp, doc, getDoc, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -290,10 +290,10 @@ export function UploadScreen() {
           </>
         ) : (
           <div className="relative aspect-[3/4] rounded-3xl overflow-hidden mb-6 shadow-lg bg-black">
-            <video 
+            <video
               ref={videoRef}
-              src={videoUrl} 
-              className="w-full h-full object-cover opacity-80"
+              src={videoUrl}
+              className="w-full h-full object-cover"
               autoPlay loop muted playsInline
               onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
               onTimeUpdate={(e) => {
@@ -307,26 +307,8 @@ export function UploadScreen() {
                 }
               }}
             />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-16 h-16 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center border border-white/50 cursor-pointer">
-                <Play className="w-8 h-8 text-white fill-white ml-1" />
-              </div>
-            </div>
-            
-            {/* Studio Tools Overlay */}
-            <div className="absolute right-4 top-4 flex flex-col gap-3">
-              <button className="w-10 h-10 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20">
-                <Wand2 className="w-5 h-5" />
-              </button>
-              <button className="w-10 h-10 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20">
-                <Sticker className="w-5 h-5" />
-              </button>
-              <button className="w-10 h-10 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20">
-                <Type className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <button 
+
+            <button
               onClick={handleRetake}
               className="absolute top-4 left-4 bg-black/50 backdrop-blur-md text-white text-xs font-bold px-3 py-1.5 rounded-full border border-white/20"
             >
