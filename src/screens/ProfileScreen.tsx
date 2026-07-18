@@ -385,12 +385,20 @@ export function ProfileScreen() {
           </div>
 
           {/* Legal */}
-          <button
-            onClick={() => navigate('/terms')}
-            className="mt-4 w-full text-center text-xs font-bold text-neutral-400 underline active:scale-95 transition-transform"
-          >
-            Terms of Use
-          </button>
+          <div className="mt-4 flex items-center justify-center gap-4">
+            <button
+              onClick={() => navigate('/terms')}
+              className="text-xs font-bold text-neutral-400 underline active:scale-95 transition-transform"
+            >
+              Terms of Use
+            </button>
+            <button
+              onClick={() => navigate('/privacy')}
+              className="text-xs font-bold text-neutral-400 underline active:scale-95 transition-transform"
+            >
+              Privacy Policy
+            </button>
+          </div>
 
         </div>
       </div>

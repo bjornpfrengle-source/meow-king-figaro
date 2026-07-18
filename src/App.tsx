@@ -17,6 +17,7 @@ import { TermsScreen } from './screens/TermsScreen';
 import { HallOfFameScreen } from './screens/HallOfFameScreen';
 import { ThemeAdminScreen } from './screens/ThemeAdminScreen';
 import { PublicProfileScreen } from './screens/PublicProfileScreen';
+import { PrivacyScreen } from './screens/PrivacyScreen';
 
 export default function App() {
   return (
@@ -44,6 +45,7 @@ export default function App() {
             <Route path="/hall-of-fame" element={<HallOfFameScreen />} />
             <Route path="/admin/themes" element={<ThemeAdminScreen />} />
             <Route path="/user/:uid" element={<PublicProfileScreen />} />
+            <Route path="/privacy" element={<PrivacyScreen />} />
           </Routes>
 
           <BottomNav />
