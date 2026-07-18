@@ -28,10 +28,30 @@ export function HomeScreen() {
   const { user, userProfile, signIn } = useFirebase();
   const { active, upcoming } = useThemes();
   const [topCats, setTopCats] = useState<Cat[]>([]);
-  const [totalCats, setTotalCats] = useState(1284);
+  const [totalCats, setTotalCats] = useState(0);
+  const [realCatCount, setRealCatCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [reportTarget, setReportTarget] = useState<{ id: string; name: string } | null>(null);
   const [activeCommentCatId, setActiveCommentCatId] = useState<string | null>(null);
+
+  // A believable "cats competing today" figure: a modest base that changes
+  // day to day and climbs through the day, then ticks up live so it feels active.
+  useEffect(() => {
+    const computeBase = () => {
+      const now = new Date();
+      const dayIndex = Math.floor(now.getTime() / 86400000);
+      const seed = Math.abs(Math.sin(dayIndex * 12.9898) * 43758.5453) % 1; // stable per day
+      const dailyBase = 850 + Math.floor(seed * 550); // ~850–1400, varies daily
+      const frac = (now.getHours() * 60 + now.getMinutes()) / 1440;
+      const curve = 0.45 + 0.55 * frac; // climbs as the day goes on
+      return Math.round(dailyBase * curve);
+    };
+    setTotalCats(computeBase());
+    const id = setInterval(() => {
+      setTotalCats((c) => c + (Math.random() < 0.65 ? Math.floor(Math.random() * 3) : 0));
+    }, 5000);
+    return () => clearInterval(id);
+  }, []);
   const trendingVideoRef = useRef<HTMLVideoElement>(null);
 
   const playFullscreen = (v: any, trimStart: number = 0) => {
@@ -91,8 +111,7 @@ export function HomeScreen() {
     });
 
     const unsubscribeTotal = onSnapshot(collection(db, 'cats'), (snapshot) => {
-      // Start with a base number and add the actual database count to make it look active
-      setTotalCats(1284 + snapshot.size);
+      setRealCatCount(snapshot.size);
     });
 
     return () => {
@@ -230,7 +249,7 @@ export function HomeScreen() {
                 <Plus className="w-4 h-4" />
               </div>
             </div>
-            <span className="ml-3 text-teal-600 font-bold text-sm">{totalCats.toLocaleString()} cats competing today</span>
+            <span className="ml-3 text-teal-600 font-bold text-sm">{(totalCats + realCatCount).toLocaleString()} cats competing today</span>
           </div>
           <TrendingUp className="w-5 h-5 text-teal-500" />
         </div>
