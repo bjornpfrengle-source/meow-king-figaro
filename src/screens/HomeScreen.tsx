@@ -23,30 +23,32 @@ interface Cat {
 
 import { useFirebase } from '../components/FirebaseProvider';
 
+// A believable "cats competing today" base: modest, varies by day, climbs
+// through the day. Computed synchronously so the counter never flashes 0.
+function computeActivityBase() {
+  const now = new Date();
+  const dayIndex = Math.floor(now.getTime() / 86400000);
+  const seed = Math.abs(Math.sin(dayIndex * 12.9898) * 43758.5453) % 1; // stable per day
+  const dailyBase = 850 + Math.floor(seed * 550); // ~850–1400, varies daily
+  const frac = (now.getHours() * 60 + now.getMinutes()) / 1440;
+  const curve = 0.45 + 0.55 * frac; // climbs as the day goes on
+  return Math.round(dailyBase * curve);
+}
+
 export function HomeScreen() {
   const navigate = useNavigate();
   const { user, userProfile, signIn } = useFirebase();
   const { active, upcoming } = useThemes();
   const [topCats, setTopCats] = useState<Cat[]>([]);
-  const [totalCats, setTotalCats] = useState(0);
+  const [totalCats, setTotalCats] = useState(computeActivityBase);
   const [realCatCount, setRealCatCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [reportTarget, setReportTarget] = useState<{ id: string; name: string } | null>(null);
   const [activeCommentCatId, setActiveCommentCatId] = useState<string | null>(null);
 
-  // A believable "cats competing today" figure: a modest base that changes
-  // day to day and climbs through the day, then ticks up live so it feels active.
+  // Ticks the counter up over time so it feels live (starts from the base,
+  // which is already the initial state — no flash of 0).
   useEffect(() => {
-    const computeBase = () => {
-      const now = new Date();
-      const dayIndex = Math.floor(now.getTime() / 86400000);
-      const seed = Math.abs(Math.sin(dayIndex * 12.9898) * 43758.5453) % 1; // stable per day
-      const dailyBase = 850 + Math.floor(seed * 550); // ~850–1400, varies daily
-      const frac = (now.getHours() * 60 + now.getMinutes()) / 1440;
-      const curve = 0.45 + 0.55 * frac; // climbs as the day goes on
-      return Math.round(dailyBase * curve);
-    };
-    setTotalCats(computeBase());
     const id = setInterval(() => {
       setTotalCats((c) => c + (Math.random() < 0.65 ? Math.floor(Math.random() * 3) : 0));
     }, 5000);
