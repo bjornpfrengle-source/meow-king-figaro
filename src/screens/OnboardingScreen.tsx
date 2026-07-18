@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ChevronRight, Cat, Video, Check, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useFirebase } from '../components/FirebaseProvider';
-import { collection, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase';
 
@@ -53,21 +53,14 @@ export function OnboardingScreen() {
         }
 
         if (catName.trim()) {
-          // Save to cats collection
-          await addDoc(collection(db, 'cats'), {
-            name: catName.trim(),
-            breed: catBreed.trim(),
-            approximateAge: catAge,
-            thumbnailUrl: thumbnailUrl,
-            ownerId: user.uid,
-            score: 0,
-            createdAt: serverTimestamp()
-          });
-
-          // Update user profile
+          // Save the cat details onto the user's PROFILE only. Competition
+          // entries (with video) are created later via the upload flow, so we
+          // don't create a phantom video-less cat here.
           await updateDoc(doc(db, 'users', user.uid), {
             catName: catName.trim(),
-            catThumbnailUrl: thumbnailUrl
+            catBreed: catBreed.trim(),
+            catAge: catAge,
+            catThumbnailUrl: thumbnailUrl,
           });
         }
 

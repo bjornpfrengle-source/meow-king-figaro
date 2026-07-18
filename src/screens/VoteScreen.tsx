@@ -101,7 +101,9 @@ export function VoteScreen() {
       try {
         const q = query(collection(db, 'cats'));
         const snapshot = await getDocs(q);
-        const fetchedCats = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Cat));
+        const fetchedCats = snapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() } as Cat))
+          .filter((c: any) => !!c.videoUrl); // only real video entries can battle
         
         // Shuffle the cats array locally for random matchups
         for (let i = fetchedCats.length - 1; i > 0; i--) {

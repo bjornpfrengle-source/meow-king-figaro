@@ -39,12 +39,14 @@ service cloud.firestore {
     // Domain Validators
     // ===============================================================
     function isValidUser() {
-      return hasOnlyAllowedFields(['uid', 'displayName', 'photoURL', 'role', 'socialHandle', 'catName', 'battleCry', 'catName2', 'battleCry2', 'catThumbnailUrl', 'catThumbnailUrl2', 'allowRepost', 'banned', 'bannedAt', 'bannedBy', 'badges']) &&
+      return hasOnlyAllowedFields(['uid', 'displayName', 'photoURL', 'role', 'socialHandle', 'catName', 'catBreed', 'catAge', 'battleCry', 'catName2', 'battleCry2', 'catThumbnailUrl', 'catThumbnailUrl2', 'allowRepost', 'banned', 'bannedAt', 'bannedBy', 'badges']) &&
              request.resource.data.uid == request.auth.uid &&
              isValidOptionalString('displayName', 0, 100) &&
              isValidOptionalString('photoURL', 0, 1048576) &&
              isValidOptionalString('socialHandle', 0, 100) &&
              isValidOptionalString('catName', 0, 50) &&
+             isValidOptionalString('catBreed', 0, 60) &&
+             isValidOptionalString('catAge', 0, 60) &&
              isValidOptionalString('battleCry', 0, 100) &&
              isValidOptionalString('catName2', 0, 50) &&
              isValidOptionalString('battleCry2', 0, 100) &&

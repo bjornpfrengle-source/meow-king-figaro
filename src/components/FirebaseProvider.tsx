@@ -9,6 +9,8 @@ export interface UserProfile {
   photoURL: string;
   socialHandle?: string;
   catName?: string;
+  catBreed?: string;
+  catAge?: string;
   battleCry?: string;
   catName2?: string;
   battleCry2?: string;
