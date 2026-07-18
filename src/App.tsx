@@ -16,7 +16,6 @@ import { ModerationScreen } from './screens/ModerationScreen';
 import { TermsScreen } from './screens/TermsScreen';
 import { HallOfFameScreen } from './screens/HallOfFameScreen';
 import { ThemeAdminScreen } from './screens/ThemeAdminScreen';
-import { ArenaPreviewScreen } from './screens/ArenaPreviewScreen';
 
 export default function App() {
   return (
@@ -43,7 +42,6 @@ export default function App() {
             <Route path="/terms" element={<TermsScreen />} />
             <Route path="/hall-of-fame" element={<HallOfFameScreen />} />
             <Route path="/admin/themes" element={<ThemeAdminScreen />} />
-            <Route path="/arena-preview" element={<ArenaPreviewScreen />} />
           </Routes>
 
           <BottomNav />

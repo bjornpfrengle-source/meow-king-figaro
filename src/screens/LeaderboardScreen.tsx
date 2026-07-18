@@ -1,12 +1,23 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Medal, Crown, Loader2, Flag } from 'lucide-react';
+import { Medal, Crown, Loader2, Flag, MessageCircle, Send, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, getDocs, getDoc, doc } from 'firebase/firestore';
+import { collection, query, getDocs, getDoc, doc, onSnapshot, orderBy, limit, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
 import { useThemes } from '../components/themes';
 import { ReportModal } from '../components/ReportModal';
+
+function chatTimeAgo(ts: any): string {
+  if (!ts?.toDate) return 'now';
+  const s = Math.floor((Date.now() - ts.toDate().getTime()) / 1000);
+  if (s < 60) return 'now';
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  return `${Math.floor(h / 24)}d`;
+}
 
 interface Leader {
   id: string;
@@ -37,6 +48,9 @@ export function LeaderboardScreen() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>('daily');
   const [reportTarget, setReportTarget] = useState<{ id: string; name: string } | null>(null);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [newMsg, setNewMsg] = useState('');
+  const [sending, setSending] = useState(false);
 
   // Fetch every real (video) entry once; tabs filter it client-side.
   useEffect(() => {
@@ -101,6 +115,36 @@ export function LeaderboardScreen() {
     };
     build();
   }, [tab, allCats, active, user]);
+
+  // Community discussion feed (latest few messages, newest at bottom)
+  useEffect(() => {
+    if (!user) return;
+    const q = query(collection(db, 'messages'), orderBy('createdAt', 'desc'), limit(5));
+    const unsub = onSnapshot(q, (snap) => {
+      setMessages(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })).reverse());
+    }, () => {});
+    return () => unsub();
+  }, [user]);
+
+  const handleSendMsg = async () => {
+    if (!newMsg.trim() || !user) return;
+    setSending(true);
+    try {
+      const text = newMsg.trim();
+      setNewMsg('');
+      await addDoc(collection(db, 'messages'), {
+        text,
+        userId: user.uid,
+        userName: user.displayName || 'Anonymous Cat',
+        userAvatar: user.photoURL || 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?ixlib=rb-4.0.3&w=100&q=80',
+        createdAt: serverTimestamp(),
+      });
+    } catch (e) {
+      console.error('Error posting message:', e);
+    } finally {
+      setSending(false);
+    }
+  };
 
   const heading =
     tab === 'daily'
@@ -209,6 +253,61 @@ export function LeaderboardScreen() {
             ))}
           </div>
         )}
+
+        {/* Community Discussion */}
+        <div className="mt-8">
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="font-black text-lg text-neutral-800 flex items-center gap-2">
+              <MessageCircle className="w-5 h-5 text-teal-500" /> Community
+            </h2>
+            <button onClick={() => navigate('/chat')} className="flex items-center gap-1 text-sm font-bold text-pink-500 active:scale-95 transition-transform">
+              See all <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="bg-white rounded-3xl border border-pink-50 shadow-sm p-2">
+            {messages.length === 0 ? (
+              <p className="text-neutral-400 text-sm text-center py-6 font-medium">No messages yet. Say hi! 🐱</p>
+            ) : (
+              messages.map((m) => (
+                <div key={m.id} className="flex gap-3 p-2.5">
+                  <img
+                    src={m.userAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.userName || 'Cat')}&background=random`}
+                    alt={m.userName}
+                    className="w-9 h-9 rounded-full object-cover border border-pink-100 shrink-0"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="font-bold text-neutral-800 text-sm truncate">{m.userName}</span>
+                      <span className="text-[10px] font-bold text-neutral-300 shrink-0">{chatTimeAgo(m.createdAt)}</span>
+                    </div>
+                    <p className="text-sm text-neutral-600 leading-snug">{m.text}</p>
+                  </div>
+                </div>
+              ))
+            )}
+
+            {/* Quick add */}
+            <div className="flex items-center gap-2 bg-neutral-50 border border-neutral-200 rounded-full px-3 py-1.5 mt-2 focus-within:border-red-300 focus-within:ring-2 focus-within:ring-red-100 transition-all">
+              <input
+                value={newMsg}
+                onChange={(e) => setNewMsg(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSendMsg(); }}
+                placeholder={user ? 'Add a comment…' : 'Sign in to chat…'}
+                disabled={!user}
+                className="flex-1 bg-transparent outline-none text-sm font-medium text-neutral-700 placeholder:text-neutral-400"
+              />
+              <button
+                onClick={handleSendMsg}
+                disabled={sending || !newMsg.trim()}
+                className={`p-2 rounded-full flex items-center justify-center transition-all ${newMsg.trim() ? 'bg-red-400 text-white shadow-md shadow-red-400/30' : 'bg-neutral-200 text-neutral-400'}`}
+              >
+                <Send className="w-4 h-4 ml-0.5" />
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <ReportModal
