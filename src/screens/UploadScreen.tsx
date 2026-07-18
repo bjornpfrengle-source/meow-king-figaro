@@ -75,6 +75,8 @@ export function UploadScreen() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [duration, setDuration] = useState<number>(0);
   const [trimStart, setTrimStart] = useState<number>(0);
+  // Vertical framing for the square battle panel: 0 = show top, 100 = show bottom
+  const [framePosition, setFramePosition] = useState<number>(35);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [caption, setCaption] = useState('');
   const [catName, setCatName] = useState('');
@@ -220,6 +222,7 @@ export function UploadScreen() {
         score: 0,
         selectedCatId: selectedCatId,
         trimStart: 0,
+        framePosition: framePosition,
         theme: theme,
         createdAt: serverTimestamp()
       });
@@ -281,6 +284,7 @@ export function UploadScreen() {
               <div className="text-center px-6">
                 <p className="font-black text-xl text-neutral-800 mb-1">Upload Video</p>
                 <p className="text-sm font-medium text-neutral-500">5-15 seconds of pure chaos</p>
+                <p className="text-xs font-bold text-teal-500 mt-1">📱 Vertical (9:16) looks best!</p>
               </div>
             </motion.div>
           </>
@@ -380,6 +384,40 @@ export function UploadScreen() {
             <p className="text-xs text-neutral-500 font-medium mt-2">
               Drag the highlighted window to pick your best 15 seconds.
             </p>
+          </div>
+        )}
+
+        {/* Frame for battle */}
+        {videoUrl && (
+          <div className="mb-6">
+            <label className="block text-sm font-black text-neutral-800 uppercase tracking-wide mb-2">Frame for Battle</label>
+            <div className="flex gap-4 items-stretch">
+              <div className="relative w-36 aspect-square rounded-2xl overflow-hidden bg-black shrink-0 border border-neutral-300">
+                <video
+                  src={videoUrl}
+                  className="w-full h-full object-cover"
+                  style={{ objectPosition: `center ${framePosition}%` }}
+                  autoPlay loop muted playsInline
+                  onLoadedMetadata={(e) => { if (trimStart) e.currentTarget.currentTime = trimStart; }}
+                />
+              </div>
+              <div className="flex-1 flex flex-col justify-center">
+                <p className="text-xs text-neutral-500 font-medium mb-3">This is how your cat sits in the battle screen. Slide to frame the face nicely.</p>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={framePosition}
+                  onChange={(e) => setFramePosition(parseFloat(e.target.value))}
+                  className="w-full accent-teal-500"
+                />
+                <div className="flex justify-between text-[10px] font-bold text-neutral-400 uppercase mt-1">
+                  <span>Show top</span>
+                  <span>Show bottom</span>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 

@@ -70,7 +70,7 @@ service cloud.firestore {
     }
 
     function isValidCat() {
-      return hasOnlyAllowedFields(['ownerId', 'name', 'cry', 'videoUrl', 'thumbnailUrl', 'score', 'createdAt', 'isVerified', 'selectedCatId', 'breed', 'approximateAge', 'trimStart', 'trimEnd', 'theme']) &&
+      return hasOnlyAllowedFields(['ownerId', 'name', 'cry', 'videoUrl', 'thumbnailUrl', 'score', 'createdAt', 'isVerified', 'selectedCatId', 'breed', 'approximateAge', 'trimStart', 'trimEnd', 'theme', 'framePosition']) &&
              request.resource.data.ownerId == request.auth.uid &&
              isValidString('name', 1, 50) &&
              isValidOptionalString('cry', 0, 100) &&
@@ -84,7 +84,8 @@ service cloud.firestore {
              (!( 'breed' in request.resource.data ) || request.resource.data.breed is string) &&
              (!( 'approximateAge' in request.resource.data ) || request.resource.data.approximateAge is string) &&
              (!( 'trimStart' in request.resource.data ) || request.resource.data.trimStart is number) &&
-             (!( 'trimEnd' in request.resource.data ) || request.resource.data.trimEnd is number);
+             (!( 'trimEnd' in request.resource.data ) || request.resource.data.trimEnd is number) &&
+             (!( 'framePosition' in request.resource.data ) || request.resource.data.framePosition is number);
     }
 
     function isValidReport() {

@@ -16,6 +16,7 @@ interface Cat {
   score: number;
   trimStart?: number;
   trimEnd?: number;
+  framePosition?: number;
 }
 
 const FALLBACK_PAIRS = [
@@ -246,6 +247,7 @@ export function VoteScreen() {
             ref={video1Ref}
             src={currentPair.cat1.videoUrl}
             className="absolute inset-0 w-full h-full object-cover"
+            style={{ objectPosition: `center ${currentPair.cat1.framePosition ?? 35}%` }}
             autoPlay loop muted playsInline preload="auto"
             onCanPlay={(e) => { e.currentTarget.play().catch(() => {}); }}
             onLoadedMetadata={(e) => {
@@ -338,6 +340,7 @@ export function VoteScreen() {
             ref={video2Ref}
             src={currentPair.cat2.videoUrl}
             className="absolute inset-0 w-full h-full object-cover"
+            style={{ objectPosition: `center ${currentPair.cat2.framePosition ?? 35}%` }}
             autoPlay loop muted playsInline preload="auto"
             onCanPlay={(e) => { e.currentTarget.play().catch(() => {}); }}
             onLoadedMetadata={(e) => {
