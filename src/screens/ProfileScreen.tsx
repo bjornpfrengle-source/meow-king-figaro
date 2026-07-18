@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Settings, Award, Plus, Video, ToggleRight, ToggleLeft, Trophy, Grid, PlaySquare, Loader2, Camera, ShieldCheck, ShieldAlert, CalendarClock, Star } from 'lucide-react';
+import { Settings, Award, Plus, Video, ToggleRight, ToggleLeft, Trophy, Grid, PlaySquare, Loader2, Camera, ShieldCheck, ShieldAlert, CalendarClock, Star, Trash2 } from 'lucide-react';
 import { DIGITAL_REWARDS } from '../components/rewards';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, where, orderBy, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs, doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auth, db, storage } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
@@ -59,6 +59,17 @@ export function ProfileScreen() {
     } catch (error) {
       console.error('Error uploading thumbnail:', error);
       alert('Failed to upload thumbnail.');
+    }
+  };
+
+  const handleDeleteCat = async (catId: string, catName: string) => {
+    if (!window.confirm(`Remove ${catName}'s entry? This deletes the video from the competition.`)) return;
+    try {
+      await deleteDoc(doc(db, 'cats', catId));
+      setMyCats((prev) => prev.filter((c) => c.id !== catId));
+    } catch (error) {
+      console.error('Error deleting entry:', error);
+      alert('Could not delete right now. Please try again.');
     }
   };
 
@@ -360,14 +371,22 @@ export function ProfileScreen() {
                     </div>
                     <p className="text-white font-black text-sm">{cat.score} Votes</p>
                   </div>
-                  <button 
+                  <button
                     onClick={() => {
                       setActiveCatId(cat.id);
                       fileInputRef.current?.click();
                     }}
                     className="absolute top-2 right-2 p-1.5 bg-white/50 backdrop-blur-md rounded-full opacity-80 hover:opacity-100 transition-opacity"
+                    aria-label="Change thumbnail"
                   >
                     <Camera className="w-4 h-4 text-white" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteCat(cat.id, cat.name)}
+                    className="absolute top-2 left-2 p-1.5 bg-red-500/80 backdrop-blur-md rounded-full opacity-90 hover:opacity-100 active:scale-95 transition-all"
+                    aria-label="Delete entry"
+                  >
+                    <Trash2 className="w-4 h-4 text-white" />
                   </button>
                 </div>
               ))
