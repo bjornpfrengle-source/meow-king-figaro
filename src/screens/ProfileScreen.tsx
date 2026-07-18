@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Settings, Award, Plus, Video, ToggleRight, ToggleLeft, Trophy, Grid, PlaySquare, Loader2, Camera, ShieldCheck, ShieldAlert, CalendarClock, Star, Trash2 } from 'lucide-react';
+import { Settings, Award, Plus, Video, ToggleRight, ToggleLeft, Trophy, Grid, Loader2, ShieldCheck, ShieldAlert, CalendarClock, Star, Trash2 } from 'lucide-react';
 import { DIGITAL_REWARDS } from '../components/rewards';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, where, orderBy, getDocs, doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auth, db, storage } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
 import { SettingsModal } from '../components/SettingsModal';
@@ -39,29 +38,6 @@ export function ProfileScreen() {
   const [trophies, setTrophies] = useState<{ theme: string; title: string; champion: boolean; votes: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [activeCatId, setActiveCatId] = useState<string | null>(null);
-
-  const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !activeCatId) return;
-
-    try {
-      const storageRef = ref(storage, `thumbnails/${activeCatId}_${Date.now()}`);
-      await uploadBytes(storageRef, file);
-      const downloadUrl = await getDownloadURL(storageRef);
-
-      const catRef = doc(db, 'cats', activeCatId);
-      await updateDoc(catRef, { thumbnailUrl: downloadUrl });
-
-      // Refresh cats
-      setMyCats(prev => prev.map(cat => cat.id === activeCatId ? { ...cat, thumbnailUrl: downloadUrl } : cat));
-    } catch (error) {
-      console.error('Error uploading thumbnail:', error);
-      alert('Failed to upload thumbnail.');
-    }
-  };
-
   const handleDeleteCat = async (catId: string, catName: string) => {
     if (!window.confirm(`Remove ${catName}'s entry? This deletes the video from the competition.`)) return;
     try {
@@ -308,14 +284,11 @@ export function ProfileScreen() {
             )}
           </div>
 
-          {/* Battle History Tabs */}
+          {/* My Cats */}
           <div className="mb-4 flex gap-4 border-b border-pink-100 pb-2">
-            <button className="flex items-center gap-2 font-black text-sm text-pink-500 border-b-2 border-pink-500 pb-2 -mb-[9px]">
+            <div className="flex items-center gap-2 font-black text-sm text-pink-500 border-b-2 border-pink-500 pb-2 -mb-[9px]">
               <Grid className="w-4 h-4" /> My Cats
-            </button>
-            <button className="flex items-center gap-2 font-bold text-sm text-neutral-400 pb-2">
-              <PlaySquare className="w-4 h-4" /> Saved
-            </button>
+            </div>
           </div>
 
           {/* Recent Entries Grid */}
@@ -372,18 +345,8 @@ export function ProfileScreen() {
                     <p className="text-white font-black text-sm">{cat.score} Votes</p>
                   </div>
                   <button
-                    onClick={() => {
-                      setActiveCatId(cat.id);
-                      fileInputRef.current?.click();
-                    }}
-                    className="absolute top-2 right-2 p-1.5 bg-white/50 backdrop-blur-md rounded-full opacity-80 hover:opacity-100 transition-opacity"
-                    aria-label="Change thumbnail"
-                  >
-                    <Camera className="w-4 h-4 text-white" />
-                  </button>
-                  <button
                     onClick={() => handleDeleteCat(cat.id, cat.name)}
-                    className="absolute top-2 left-2 p-1.5 bg-red-500/80 backdrop-blur-md rounded-full opacity-90 hover:opacity-100 active:scale-95 transition-all"
+                    className="absolute top-2 right-2 p-1.5 bg-red-500/80 backdrop-blur-md rounded-full opacity-90 hover:opacity-100 active:scale-95 transition-all"
                     aria-label="Delete entry"
                   >
                     <Trash2 className="w-4 h-4 text-white" />
@@ -392,13 +355,6 @@ export function ProfileScreen() {
               ))
             )}
           </div>
-          <input 
-            type="file" 
-            accept="image/*" 
-            className="hidden" 
-            ref={fileInputRef} 
-            onChange={handleThumbnailUpload} 
-          />
 
           {/* Settings / Toggles */}
           <div className="bg-white rounded-3xl p-5 shadow-sm border border-pink-50">
