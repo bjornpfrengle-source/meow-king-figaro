@@ -89,7 +89,7 @@ export function HallOfFameScreen() {
   return (
     <div className="flex-1 overflow-y-auto bg-[#FFF5F5] flex flex-col pb-24">
       {/* Header */}
-      <div className="pt-12 pb-4 px-6 flex items-center gap-4 bg-gradient-to-b from-yellow-50 to-[#FFF5F5] sticky top-0 z-20">
+      <div className="pt-4 pb-4 px-6 flex items-center gap-4 bg-gradient-to-b from-yellow-50 to-[#FFF5F5] sticky top-0 z-20">
         <button onClick={() => navigate(-1)} className="p-2 -ml-2 bg-white rounded-full text-neutral-600 shadow-sm active:scale-95 transition-transform">
           <ChevronLeft className="w-6 h-6" />
         </button>

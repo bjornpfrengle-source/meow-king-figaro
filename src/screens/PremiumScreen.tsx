@@ -12,7 +12,7 @@ export function PremiumScreen() {
       <div className="absolute -top-24 -right-24 w-64 h-64 bg-fuchsia-600/30 rounded-full blur-3xl pointer-events-none"></div>
       <div className="absolute top-32 -left-24 w-64 h-64 bg-amber-500/20 rounded-full blur-3xl pointer-events-none"></div>
 
-      <div className="flex-1 px-6 pt-12 pb-8 flex flex-col relative z-10">
+      <div className="flex-1 px-6 pt-4 pb-8 flex flex-col relative z-10">
         <div className="text-center mb-8">
           <motion.div 
             animate={{ y: [0, -10, 0] }}

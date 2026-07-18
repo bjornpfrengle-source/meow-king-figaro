@@ -9,7 +9,7 @@ export function ThemeScreen() {
   return (
     <div className="flex-1 bg-[#FFF5F5] flex flex-col overflow-y-auto pb-24 relative">
       {/* Header */}
-      <div className="pt-12 pb-4 px-6 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-20 border-b border-red-100">
+      <div className="pt-4 pb-4 px-6 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-20 border-b border-red-100">
         <h1 className="text-xl font-black text-neutral-800">Daily Theme</h1>
         {active && (
           <div className="flex items-center gap-1 bg-red-50 px-3 py-1.5 rounded-full">

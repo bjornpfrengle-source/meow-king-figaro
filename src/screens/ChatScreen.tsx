@@ -76,7 +76,7 @@ export function ChatScreen() {
   return (
     <div className="flex-1 bg-[#FFF5F5] flex flex-col relative overflow-hidden">
       {/* Header */}
-      <div className="pt-12 pb-4 px-6 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-20 border-b border-red-100 shadow-sm">
+      <div className="pt-4 pb-4 px-6 flex items-center justify-between bg-white/80 backdrop-blur-md sticky top-0 z-20 border-b border-red-100 shadow-sm">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="p-2 -ml-2 bg-white rounded-full text-neutral-600 shadow-sm active:scale-95 transition-transform">
             <ChevronLeft className="w-5 h-5" />

@@ -110,7 +110,7 @@ export function HomeScreen() {
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M15 25c0 3.314-2.686 6-6 6s-6-2.686-6-6 2.686-6 6-6 6 2.686 6 6zm12-10c0 3.314-2.686 6-6 6s-6-2.686-6-6 2.686-6 6-6 6 2.686 6 6zm12 0c0 3.314-2.686 6-6 6s-6-2.686-6-6 2.686-6 6-6 6 2.686 6 6zm12 10c0 3.314-2.686 6-6 6s-6-2.686-6-6 2.686-6 6-6 6 2.686 6 6zM30 45c8.284 0 15-6.716 15-15 0-5.523-4.477-10-10-10-2.761 0-5 2.239-5 5s-2.239 5-5 5-5-2.239-5-5-2.239-5-5-5c-5.523 0-10 4.477-10 10 0 8.284 6.716 15 15 15z\' fill=\'%23000000\' fill-rule=\'evenodd\'/%3E%3C/svg%3E")' }}></div>
 
       {/* Header */}
-      <div className="pt-12 pb-4 px-6 flex justify-between items-center bg-[#FFF5F5] sticky top-0 z-20">
+      <div className="pt-4 pb-4 px-6 flex justify-between items-center bg-[#FFF5F5] sticky top-0 z-20">
         <div className="flex items-center gap-2">
           <div className="w-10 h-10 bg-red-400 rounded-full flex items-center justify-center shadow-sm">
             <PawPrint className="w-5 h-5 text-white fill-white" />

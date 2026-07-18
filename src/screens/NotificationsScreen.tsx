@@ -61,7 +61,7 @@ export function NotificationsScreen() {
   return (
     <div className="flex-1 bg-[#FFF5F5] flex flex-col relative overflow-hidden">
       {/* Header */}
-      <div className="pt-12 pb-4 px-6 flex items-center gap-4 bg-white/80 backdrop-blur-md sticky top-0 z-20 border-b border-pink-100">
+      <div className="pt-4 pb-4 px-6 flex items-center gap-4 bg-white/80 backdrop-blur-md sticky top-0 z-20 border-b border-pink-100">
         <button onClick={() => navigate(-1)} className="p-2 -ml-2 bg-pink-50 rounded-full text-pink-500 active:scale-95 transition-transform">
           <ChevronLeft className="w-6 h-6" />
         </button>

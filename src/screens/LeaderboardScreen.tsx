@@ -103,7 +103,7 @@ export function LeaderboardScreen() {
   return (
     <div className="flex-1 overflow-y-auto bg-[#FFF5F5] flex flex-col">
       {/* Header */}
-      <div className="pt-12 pb-6 px-6 bg-gradient-to-b from-pink-100 to-[#FFF5F5] sticky top-0 z-20">
+      <div className="pt-4 pb-6 px-6 bg-gradient-to-b from-pink-100 to-[#FFF5F5] sticky top-0 z-20">
         <div className="flex justify-between items-center mb-4">
           <div className="w-10"></div> {/* Spacer to keep title centered */}
           <div className="text-center">
