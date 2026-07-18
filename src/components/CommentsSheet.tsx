@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Heart, Send, Loader2, Flag } from 'lucide-react';
 import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, increment } from 'firebase/firestore';
+import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
 import { ReportModal } from './ReportModal';
@@ -22,6 +23,7 @@ export function CommentsSheet({ isOpen, onClose, catId }: { isOpen: boolean, onC
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const { user, userProfile, signIn } = useFirebase();
+  const navigate = useNavigate();
   const commentsEndRef = useRef<HTMLDivElement>(null);
   const [reportCommentTarget, setReportCommentTarget] = useState<{ id: string; name: string } | null>(null);
 
@@ -142,14 +144,14 @@ export function CommentsSheet({ isOpen, onClose, catId }: { isOpen: boolean, onC
                 <div className="flex justify-center py-10">
                   <Loader2 className="w-8 h-8 text-pink-500 animate-spin" />
                 </div>
-              ) : comments.length === 0 ? (
+              ) : comments.filter((c) => !(userProfile?.blockedUserIds || []).includes(c.userId)).length === 0 ? (
                 <div className="text-center py-10 text-neutral-400 font-bold">
                   No comments yet. Be the first!
                 </div>
               ) : (
-                comments.map(comment => (
+                comments.filter((c) => !(userProfile?.blockedUserIds || []).includes(c.userId)).map(comment => (
                   <div key={comment.id} className="flex gap-3">
-                    <img src={comment.userAvatar || `https://ui-avatars.com/api/?name=${comment.userName}&background=random`} alt={comment.userName} className="w-10 h-10 rounded-full object-cover shadow-sm border border-white" referrerPolicy="no-referrer" />
+                    <img onClick={() => { onClose(); navigate(`/user/${comment.userId}`); }} src={comment.userAvatar || `https://ui-avatars.com/api/?name=${comment.userName}&background=random`} alt={comment.userName} className="w-10 h-10 rounded-full object-cover shadow-sm border border-white cursor-pointer" referrerPolicy="no-referrer" />
                     <div className="flex-1 bg-white p-3 rounded-2xl rounded-tl-none shadow-sm border border-pink-50">
                       <div className="flex items-baseline gap-2 mb-1">
                         <span className="font-bold text-neutral-800 text-sm">{comment.userName}</span>

@@ -20,6 +20,7 @@ export interface UserProfile {
   allowRepost?: boolean;
   banned?: boolean;
   badges?: string[];
+  blockedUserIds?: string[];
 }
 
 // Owner account that is always treated as an admin (matches firestore.rules)

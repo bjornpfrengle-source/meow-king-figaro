@@ -266,26 +266,29 @@ export function LeaderboardScreen() {
           </div>
 
           <div className="bg-white rounded-3xl border border-pink-50 shadow-sm p-2">
-            {messages.length === 0 ? (
+            {messages.filter((m) => !(userProfile?.blockedUserIds || []).includes(m.userId)).length === 0 ? (
               <p className="text-neutral-400 text-sm text-center py-6 font-medium">No messages yet. Say hi! 🐱</p>
             ) : (
-              messages.map((m) => (
-                <div key={m.id} className="flex gap-3 p-2.5">
-                  <img
-                    src={m.userAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.userName || 'Cat')}&background=random`}
-                    alt={m.userName}
-                    className="w-9 h-9 rounded-full object-cover border border-pink-100 shrink-0"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="font-bold text-neutral-800 text-sm truncate">{m.userName}</span>
-                      <span className="text-[10px] font-bold text-neutral-300 shrink-0">{chatTimeAgo(m.createdAt)}</span>
+              messages
+                .filter((m) => !(userProfile?.blockedUserIds || []).includes(m.userId))
+                .map((m) => (
+                  <div key={m.id} className="flex gap-3 p-2.5">
+                    <img
+                      onClick={() => navigate(`/user/${m.userId}`)}
+                      src={m.userAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.userName || 'Cat')}&background=random`}
+                      alt={m.userName}
+                      className="w-9 h-9 rounded-full object-cover border border-pink-100 shrink-0 cursor-pointer"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span onClick={() => navigate(`/user/${m.userId}`)} className="font-bold text-neutral-800 text-sm truncate cursor-pointer">{m.userName}</span>
+                        <span className="text-[10px] font-bold text-neutral-300 shrink-0">{chatTimeAgo(m.createdAt)}</span>
+                      </div>
+                      <p className="text-sm text-neutral-600 leading-snug">{m.text}</p>
                     </div>
-                    <p className="text-sm text-neutral-600 leading-snug">{m.text}</p>
                   </div>
-                </div>
-              ))
+                ))
             )}
 
             {/* Quick add */}

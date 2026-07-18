@@ -86,32 +86,35 @@ export function ChatScreen() {
 
       {/* Comments (social feed style) */}
       <div className="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-5">
-        {messages.length === 0 ? (
+        {messages.filter((m) => !(userProfile?.blockedUserIds || []).includes(m.userId)).length === 0 ? (
           <div className="text-center py-16 text-neutral-400 font-bold">Be the first to say something! 🐱</div>
         ) : (
-          messages.map((msg) => (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              key={msg.id}
-              className="flex gap-3 items-start"
-            >
-              <img
-                src={msg.userAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(msg.userName || 'Cat')}&background=random`}
-                alt={msg.userName}
-                className="w-9 h-9 rounded-full object-cover border border-pink-100 shrink-0"
-                referrerPolicy="no-referrer"
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-baseline gap-2">
-                  <span className="font-bold text-neutral-800 text-sm truncate">{msg.userName}</span>
-                  <span className="text-[10px] font-bold text-neutral-300 shrink-0">{timeAgo(msg.createdAt)}</span>
+          messages
+            .filter((m) => !(userProfile?.blockedUserIds || []).includes(m.userId))
+            .map((msg) => (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                key={msg.id}
+                className="flex gap-3 items-start"
+              >
+                <img
+                  onClick={() => navigate(`/user/${msg.userId}`)}
+                  src={msg.userAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(msg.userName || 'Cat')}&background=random`}
+                  alt={msg.userName}
+                  className="w-9 h-9 rounded-full object-cover border border-pink-100 shrink-0 cursor-pointer"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-2">
+                    <span onClick={() => navigate(`/user/${msg.userId}`)} className="font-bold text-neutral-800 text-sm truncate cursor-pointer">{msg.userName}</span>
+                    <span className="text-[10px] font-bold text-neutral-300 shrink-0">{timeAgo(msg.createdAt)}</span>
+                  </div>
+                  <p className="text-sm text-neutral-700 leading-relaxed break-words">{msg.text}</p>
                 </div>
-                <p className="text-sm text-neutral-700 leading-relaxed break-words">{msg.text}</p>
-              </div>
-              <Heart className="w-4 h-4 text-neutral-300 shrink-0 mt-1" />
-            </motion.div>
-          ))
+                <Heart className="w-4 h-4 text-neutral-300 shrink-0 mt-1" />
+              </motion.div>
+            ))
         )}
         <div ref={messagesEndRef} />
       </div>
