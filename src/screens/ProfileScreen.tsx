@@ -36,6 +36,7 @@ export function ProfileScreen() {
   const navigate = useNavigate();
   const { user, userProfile, signIn, isAdmin } = useFirebase();
   const [myCats, setMyCats] = useState<Cat[]>([]);
+  const [trophies, setTrophies] = useState<{ theme: string; title: string; champion: boolean; votes: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -98,6 +99,47 @@ export function ProfileScreen() {
 
     fetchData();
   }, [user]);
+
+  // Build the trophy cabinet from real theme entries. One trophy per theme the
+  // user's cats have entered; gold "Champion" if their cat is the top-voted in
+  // that theme, otherwise a "Competed" trophy.
+  useEffect(() => {
+    if (!user || myCats.length === 0) {
+      setTrophies([]);
+      return;
+    }
+    const prettify = (slug: string) =>
+      slug.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
+    const build = async () => {
+      // Best score per theme among the user's own cats
+      const byTheme: Record<string, number> = {};
+      myCats.forEach((c) => {
+        const th = (c as any).theme;
+        if (!th) return;
+        byTheme[th] = Math.max(byTheme[th] ?? -1, c.score || 0);
+      });
+
+      const result = await Promise.all(
+        Object.keys(byTheme).map(async (th) => {
+          let champion = false;
+          try {
+            const snap = await getDocs(query(collection(db, 'cats'), where('theme', '==', th)));
+            let topScore = -1;
+            let topOwner: string | null = null;
+            snap.forEach((d) => {
+              const x = d.data();
+              if ((x.score || 0) > topScore) { topScore = x.score || 0; topOwner = x.ownerId; }
+            });
+            champion = topOwner === user.uid;
+          } catch (e) { /* ignore */ }
+          return { theme: th, title: prettify(th), champion, votes: byTheme[th] };
+        })
+      );
+      setTrophies(result);
+    };
+    build();
+  }, [user, myCats]);
 
   const totalVotes = myCats.reduce((sum, cat) => sum + (cat.score || 0), 0);
 
@@ -237,37 +279,30 @@ export function ProfileScreen() {
               <h3 className="font-black text-lg text-neutral-800 flex items-center gap-2">
                 <Trophy className="w-5 h-5 text-yellow-500" /> Trophy Cabinet
               </h3>
-              <span className="text-xs font-bold text-pink-500">View All</span>
             </div>
-            
-            <div className="flex gap-3 overflow-x-auto pb-2 -mx-6 px-6 snap-x">
-              {/* Medal 1 */}
-              <div className="bg-gradient-to-br from-yellow-50 to-orange-50 border border-yellow-200 rounded-2xl p-3 min-w-[120px] flex flex-col items-center text-center snap-start shadow-sm">
-                <div className="w-12 h-12 bg-yellow-400 rounded-full flex items-center justify-center mb-2 shadow-inner border-2 border-white">
-                  <span className="text-2xl">📦</span>
-                </div>
-                <p className="font-black text-neutral-800 text-xs">Box Destroyer</p>
-                <p className="text-[10px] font-bold text-yellow-600 mt-1">1st Place</p>
-              </div>
 
-              {/* Medal 2 */}
-              <div className="bg-gradient-to-br from-slate-50 to-gray-100 border border-slate-200 rounded-2xl p-3 min-w-[120px] flex flex-col items-center text-center snap-start shadow-sm">
-                <div className="w-12 h-12 bg-slate-300 rounded-full flex items-center justify-center mb-2 shadow-inner border-2 border-white">
-                  <span className="text-2xl">💤</span>
-                </div>
-                <p className="font-black text-neutral-800 text-xs">Lazy Sunday</p>
-                <p className="text-[10px] font-bold text-slate-500 mt-1">2nd Place</p>
+            {trophies.length === 0 ? (
+              <div className="bg-white border border-pink-50 rounded-2xl p-5 text-center shadow-sm">
+                <p className="text-sm font-medium text-neutral-500">Enter a daily theme to start winning trophies! 🏆</p>
               </div>
-
-              {/* Medal 3 */}
-              <div className="bg-gradient-to-br from-orange-50 to-red-50 border border-orange-200 rounded-2xl p-3 min-w-[120px] flex flex-col items-center text-center snap-start shadow-sm">
-                <div className="w-12 h-12 bg-orange-400 rounded-full flex items-center justify-center mb-2 shadow-inner border-2 border-white">
-                  <span className="text-2xl">⚡</span>
-                </div>
-                <p className="font-black text-neutral-800 text-xs">Zoomies</p>
-                <p className="text-[10px] font-bold text-orange-600 mt-1">3rd Place</p>
+            ) : (
+              <div className="flex gap-3 overflow-x-auto pb-2 -mx-6 px-6 snap-x">
+                {trophies.map((t) => (
+                  <div
+                    key={t.theme}
+                    className={`rounded-2xl p-3 min-w-[120px] flex flex-col items-center text-center snap-start shadow-sm border ${t.champion ? 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200' : 'bg-gradient-to-br from-slate-50 to-gray-100 border-slate-200'}`}
+                  >
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 shadow-inner border-2 border-white ${t.champion ? 'bg-yellow-400' : 'bg-slate-300'}`}>
+                      <span className="text-2xl">{t.champion ? '🏆' : '🎖️'}</span>
+                    </div>
+                    <p className="font-black text-neutral-800 text-xs leading-tight">{t.title}</p>
+                    <p className={`text-[10px] font-bold mt-1 ${t.champion ? 'text-yellow-600' : 'text-slate-500'}`}>
+                      {t.champion ? '1st Place 👑' : `${t.votes} votes`}
+                    </p>
+                  </div>
+                ))}
               </div>
-            </div>
+            )}
           </div>
 
           {/* Battle History Tabs */}
