@@ -5,6 +5,7 @@ import { collection, addDoc, deleteDoc, doc, serverTimestamp, Timestamp } from '
 import { db } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
 import { useThemes } from '../components/themes';
+import { ConfirmModal } from '../components/ConfirmModal';
 
 function slugify(title: string) {
   return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -27,6 +28,7 @@ export function ThemeAdminScreen() {
   const [end, setEnd] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [themeToDelete, setThemeToDelete] = useState<string | null>(null);
 
   const handleAdd = async () => {
     setError('');
@@ -64,12 +66,14 @@ export function ThemeAdminScreen() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete this theme?')) return;
+  const handleDelete = async () => {
+    if (!themeToDelete) return;
     try {
-      await deleteDoc(doc(db, 'themes', id));
+      await deleteDoc(doc(db, 'themes', themeToDelete));
     } catch (e) {
       console.error('Error deleting theme:', e);
+    } finally {
+      setThemeToDelete(null);
     }
   };
 
@@ -163,7 +167,7 @@ export function ThemeAdminScreen() {
                     </div>
                     <p className="text-[11px] text-neutral-500">{fmt(t.startMs)} → {fmt(t.endMs)}</p>
                   </div>
-                  <button onClick={() => handleDelete(t.id)} className="p-2 text-neutral-400 hover:text-red-500 active:scale-90 transition-all">
+                  <button onClick={() => setThemeToDelete(t.id)} className="p-2 text-neutral-400 hover:text-red-500 active:scale-90 transition-all">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -172,6 +176,15 @@ export function ThemeAdminScreen() {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        open={!!themeToDelete}
+        title="Delete this theme?"
+        message="This removes it from the roster."
+        confirmLabel="Delete"
+        onConfirm={handleDelete}
+        onCancel={() => setThemeToDelete(null)}
+      />
     </div>
   );
 }

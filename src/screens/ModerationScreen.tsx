@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { collection, query, where, orderBy, onSnapshot, doc, getDoc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
+import { ConfirmModal } from '../components/ConfirmModal';
 
 interface Report {
   id: string;
@@ -35,6 +36,7 @@ export function ModerationScreen() {
   const [targets, setTargets] = useState<Record<string, TargetInfo>>({});
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [banConfirm, setBanConfirm] = useState<Report | null>(null);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -114,11 +116,7 @@ export function ModerationScreen() {
 
   const handleBan = async (report: Report) => {
     const ownerId = targets[report.id]?.ownerId;
-    if (!ownerId) {
-      alert('Could not determine the owner of this content.');
-      return;
-    }
-    if (!window.confirm('Ban this user? They will be blocked from uploading and their content should be removed.')) return;
+    if (!ownerId) return;
 
     setBusyId(report.id);
     try {
@@ -238,7 +236,7 @@ export function ModerationScreen() {
                   </button>
                   <button
                     disabled={busyId === report.id || !target?.ownerId}
-                    onClick={() => handleBan(report)}
+                    onClick={() => setBanConfirm(report)}
                     className="flex-1 bg-neutral-800 text-white py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 active:scale-95 transition-transform disabled:opacity-40"
                   >
                     <Ban className="w-4 h-4" /> Ban user
@@ -256,6 +254,16 @@ export function ModerationScreen() {
           })
         )}
       </div>
+
+      <ConfirmModal
+        open={!!banConfirm}
+        title="Ban this user?"
+        message="They'll be blocked from uploading and participating. Their content should also be removed."
+        confirmLabel="Ban user"
+        busy={!!banConfirm && busyId === banConfirm.id}
+        onConfirm={() => { const r = banConfirm; setBanConfirm(null); if (r) handleBan(r); }}
+        onCancel={() => setBanConfirm(null)}
+      />
     </div>
   );
 }
