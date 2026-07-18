@@ -41,7 +41,7 @@ type Tab = 'daily' | 'weekly' | 'alltime';
 
 export function LeaderboardScreen() {
   const navigate = useNavigate();
-  const { user } = useFirebase();
+  const { user, userProfile } = useFirebase();
   const { active } = useThemes();
   const [allCats, setAllCats] = useState<any[]>([]);
   const [leaders, setLeaders] = useState<Leader[]>([]);
@@ -135,8 +135,8 @@ export function LeaderboardScreen() {
       await addDoc(collection(db, 'messages'), {
         text,
         userId: user.uid,
-        userName: user.displayName || 'Anonymous Cat',
-        userAvatar: user.photoURL || 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?ixlib=rb-4.0.3&w=100&q=80',
+        userName: userProfile?.displayName || user.displayName || 'Anonymous Cat',
+        userAvatar: userProfile?.photoURL || user.photoURL || 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?ixlib=rb-4.0.3&w=100&q=80',
         createdAt: serverTimestamp(),
       });
     } catch (e) {

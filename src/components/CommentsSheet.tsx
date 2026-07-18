@@ -21,7 +21,7 @@ export function CommentsSheet({ isOpen, onClose, catId }: { isOpen: boolean, onC
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const { user, signIn } = useFirebase();
+  const { user, userProfile, signIn } = useFirebase();
   const commentsEndRef = useRef<HTMLDivElement>(null);
   const [reportCommentTarget, setReportCommentTarget] = useState<{ id: string; name: string } | null>(null);
 
@@ -69,8 +69,8 @@ export function CommentsSheet({ isOpen, onClose, catId }: { isOpen: boolean, onC
       await addDoc(collection(db, 'comments'), {
         catId,
         userId: user.uid,
-        userName: user.displayName || 'Anonymous',
-        userAvatar: user.photoURL || '',
+        userName: userProfile?.displayName || user.displayName || 'Anonymous',
+        userAvatar: userProfile?.photoURL || user.photoURL || '',
         text: newComment.trim(),
         likes: 0,
         createdAt: serverTimestamp()
