@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Settings, Award, Plus, Video, ToggleRight, ToggleLeft, Zap, Trophy, Grid, PlaySquare, Loader2, Camera, ShieldCheck, ShieldAlert, CalendarClock } from 'lucide-react';
+import { Settings, Award, Plus, Video, ToggleRight, ToggleLeft, Zap, Trophy, Grid, PlaySquare, Loader2, Camera, ShieldCheck, ShieldAlert, CalendarClock, Star } from 'lucide-react';
+import { DIGITAL_REWARDS } from '../components/rewards';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, where, orderBy, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -209,6 +210,26 @@ export function ProfileScreen() {
               </div>
             </div>
           </div>
+
+          {/* Earned Badges */}
+          {(userProfile?.badges?.length ?? 0) > 0 && (
+            <div className="mb-8">
+              <h3 className="font-black text-lg text-neutral-800 flex items-center gap-2 mb-4">
+                <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" /> Badges
+              </h3>
+              <div className="flex flex-wrap gap-3">
+                {DIGITAL_REWARDS.filter((r) => userProfile?.badges?.includes(r.id)).map((r) => {
+                  const Icon = r.icon;
+                  return (
+                    <div key={r.id} className={`flex items-center gap-2 ${r.bg} border border-pink-50 px-3 py-2 rounded-2xl shadow-sm`}>
+                      <Icon className={`w-5 h-5 ${r.color}`} />
+                      <span className="text-xs font-bold text-neutral-700">{r.title}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Trophy Cabinet */}
           <div className="mb-8">
