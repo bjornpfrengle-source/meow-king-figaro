@@ -78,6 +78,8 @@ export function UploadScreen() {
   // Vertical framing for the square battle panel: 0 = show top, 100 = show bottom
   const [framePosition, setFramePosition] = useState<number>(35);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const scrubBarRef = useRef<HTMLDivElement>(null);
+  const scrubbingRef = useRef(false);
   const [caption, setCaption] = useState('');
   const [catName, setCatName] = useState('');
   const [availableCats, setAvailableCats] = useState<{id: string, name: string}[]>([]);
@@ -127,6 +129,38 @@ export function UploadScreen() {
     setTrimStart(0);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  // Drag-anywhere scrubber: press/drag anywhere on the bar to move the 15s
+  // window (centred on the finger), seeking the preview live.
+  const scrubToClientX = (clientX: number) => {
+    const el = scrubBarRef.current;
+    if (!el || !duration) return;
+    const rect = el.getBoundingClientRect();
+    const frac = Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
+    const maxStart = Math.max(0, duration - 15);
+    const newStart = Math.min(Math.max(frac * duration - 7.5, 0), maxStart);
+    setTrimStart(newStart);
+    if (videoRef.current) videoRef.current.currentTime = newStart;
+  };
+
+  const onScrubDown = (e: React.PointerEvent) => {
+    scrubbingRef.current = true;
+    try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch {}
+    if (videoRef.current) videoRef.current.pause();
+    scrubToClientX(e.clientX);
+  };
+  const onScrubMove = (e: React.PointerEvent) => {
+    if (!scrubbingRef.current) return;
+    scrubToClientX(e.clientX);
+  };
+  const onScrubUp = (e: React.PointerEvent) => {
+    scrubbingRef.current = false;
+    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
+    if (videoRef.current) {
+      videoRef.current.currentTime = trimStart;
+      videoRef.current.play().catch(() => {});
     }
   };
 
@@ -326,45 +360,35 @@ export function UploadScreen() {
                 {trimStart.toFixed(1)}s - {Math.min(duration, trimStart + 15).toFixed(1)}s
               </div>
             </div>
-            <div className="relative h-12 bg-neutral-900 rounded-xl overflow-hidden border border-neutral-300 shadow-inner">
+            <div
+              ref={scrubBarRef}
+              onPointerDown={onScrubDown}
+              onPointerMove={onScrubMove}
+              onPointerUp={onScrubUp}
+              onPointerCancel={onScrubUp}
+              className="relative h-14 bg-neutral-900 rounded-xl overflow-hidden border border-neutral-300 shadow-inner cursor-pointer touch-none select-none"
+            >
               <div className="absolute inset-0 opacity-20 pointer-events-none overflow-hidden flex items-center justify-center">
                  <video src={videoUrl} className="w-full object-cover" muted />
               </div>
-              
+
               <div
-                className="absolute top-0 bottom-0 bg-white/20 border-x-4 border-teal-400 z-10 flex items-center justify-center pointer-events-none"
+                className="absolute top-0 bottom-0 bg-white/25 border-x-4 border-teal-400 z-10 flex items-center justify-center pointer-events-none"
                 style={{
                   left: `${(trimStart / duration) * 100}%`,
                   width: `${(15 / duration) * 100}%`,
                   boxShadow: '0 0 0 9999px rgba(0,0,0,0.6)'
                 }}
               >
-                {/* Visible grab handle so users know where to drag */}
-                <div className="bg-teal-400 rounded-full px-2 py-1 flex items-center gap-1 shadow-lg">
-                  <ChevronLeft className="w-3 h-3 text-white" strokeWidth={3} />
+                <div className="bg-teal-400 rounded-full px-2.5 py-1 flex items-center gap-1 shadow-lg">
+                  <ChevronLeft className="w-3.5 h-3.5 text-white" strokeWidth={3} />
                   <span className="text-[9px] font-black text-white uppercase tracking-wide">Drag</span>
-                  <ChevronRight className="w-3 h-3 text-white" strokeWidth={3} />
+                  <ChevronRight className="w-3.5 h-3.5 text-white" strokeWidth={3} />
                 </div>
               </div>
-
-              <input
-                type="range"
-                min={0}
-                max={duration - 15}
-                step={0.1}
-                value={trimStart}
-                onChange={(e) => {
-                  const val = parseFloat(e.target.value);
-                  setTrimStart(val);
-                  if (videoRef.current) {
-                    videoRef.current.currentTime = val;
-                  }
-                }}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20 m-0"
-              />
             </div>
             <p className="text-xs text-neutral-500 font-medium mt-2">
-              Drag the highlighted window to pick your best 15 seconds.
+              Press anywhere on the bar and slide to pick your best 15 seconds.
             </p>
           </div>
         )}
