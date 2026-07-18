@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Settings, Award, Plus, Video, ToggleRight, ToggleLeft, Zap, Trophy, Grid, PlaySquare, Loader2, Camera, ShieldCheck, ShieldAlert, CalendarClock, Star } from 'lucide-react';
+import { Settings, Award, Plus, Video, ToggleRight, ToggleLeft, Trophy, Grid, PlaySquare, Loader2, Camera, ShieldCheck, ShieldAlert, CalendarClock, Star } from 'lucide-react';
 import { DIGITAL_REWARDS } from '../components/rewards';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, where, orderBy, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
@@ -241,14 +241,6 @@ export function ProfileScreen() {
               <div className="text-center flex-1">
                 <p className="font-black text-2xl text-neutral-800">{totalVotes}</p>
                 <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Votes</p>
-              </div>
-              <div className="w-px bg-pink-100"></div>
-              <div className="text-center flex-1">
-                <div className="flex items-center justify-center gap-1">
-                  <Zap className="w-4 h-4 text-orange-400 fill-orange-400" />
-                  <p className="font-black text-2xl text-neutral-800">5</p>
-                </div>
-                <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">Streak</p>
               </div>
             </div>
           </div>
