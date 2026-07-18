@@ -46,12 +46,12 @@ export function PremiumScreen() {
         </div>
 
         <div className="mt-auto space-y-4">
-          <div className="flex gap-3">
-            <div className="flex-1 border border-white/10 bg-white/5 backdrop-blur-md rounded-2xl p-4 text-center cursor-pointer hover:bg-white/10 transition-colors">
+          <div className="flex gap-3 opacity-60">
+            <div className="flex-1 border border-white/10 bg-white/5 backdrop-blur-md rounded-2xl p-4 text-center">
               <p className="text-sm font-bold text-purple-300 mb-1 uppercase tracking-wider">Monthly</p>
               <p className="text-2xl font-black text-white">$4.99</p>
             </div>
-            <div className="flex-1 border-2 border-amber-400 bg-amber-400/10 backdrop-blur-md rounded-2xl p-4 text-center cursor-pointer relative shadow-[0_0_20px_rgba(251,191,36,0.2)]">
+            <div className="flex-1 border-2 border-amber-400 bg-amber-400/10 backdrop-blur-md rounded-2xl p-4 text-center relative shadow-[0_0_20px_rgba(251,191,36,0.2)]">
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-[10px] font-black px-3 py-1 rounded-full whitespace-nowrap shadow-lg">
                 BEST VALUE
               </div>
@@ -60,12 +60,12 @@ export function PremiumScreen() {
             </div>
           </div>
 
-          <button className="w-full bg-gradient-to-r from-amber-400 via-yellow-500 to-orange-500 text-white py-4 rounded-2xl font-black text-xl shadow-[0_0_30px_rgba(245,158,11,0.4)] active:scale-95 transition-transform flex items-center justify-center gap-2 mt-2">
-            <Crown className="w-6 h-6 fill-white" /> Join the Club
+          <button disabled className="w-full bg-white/10 border border-white/20 text-white/80 py-4 rounded-2xl font-black text-xl flex items-center justify-center gap-2 mt-2 cursor-default">
+            <Crown className="w-6 h-6" /> Coming Soon
           </button>
-          
+
           <p className="text-center text-xs font-medium text-white/40 mt-4">
-            Cancel anytime. Terms & conditions apply.
+            Catnip Club is launching soon — stay tuned! 🐱
           </p>
         </div>
       </div>
