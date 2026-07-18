@@ -246,9 +246,10 @@ export function VoteScreen() {
             key={`vid-${currentPair.cat1.id}`}
             ref={video1Ref}
             src={currentPair.cat1.videoUrl}
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover cursor-pointer"
             style={{ objectPosition: `center ${currentPair.cat1.framePosition ?? 35}%` }}
             autoPlay loop muted playsInline preload="auto"
+            onClick={() => enterFullscreen(video1Ref, currentPair.cat1.trimStart)}
             onCanPlay={(e) => { e.currentTarget.play().catch(() => {}); }}
             onLoadedMetadata={(e) => {
               if (currentPair.cat1.trimStart) e.currentTarget.currentTime = currentPair.cat1.trimStart;
@@ -339,9 +340,10 @@ export function VoteScreen() {
             key={`vid-${currentPair.cat2.id}`}
             ref={video2Ref}
             src={currentPair.cat2.videoUrl}
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover cursor-pointer"
             style={{ objectPosition: `center ${currentPair.cat2.framePosition ?? 35}%` }}
             autoPlay loop muted playsInline preload="auto"
+            onClick={() => enterFullscreen(video2Ref, currentPair.cat2.trimStart)}
             onCanPlay={(e) => { e.currentTarget.play().catch(() => {}); }}
             onLoadedMetadata={(e) => {
               if (currentPair.cat2.trimStart) e.currentTarget.currentTime = currentPair.cat2.trimStart;
