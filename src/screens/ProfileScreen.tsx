@@ -38,14 +38,21 @@ export function ProfileScreen() {
   const [trophies, setTrophies] = useState<{ theme: string; title: string; champion: boolean; votes: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const handleDeleteCat = async (catId: string, catName: string) => {
-    if (!window.confirm(`Remove ${catName}'s entry? This deletes the video from the competition.`)) return;
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const performDelete = async () => {
+    if (!confirmDelete) return;
+    const { id } = confirmDelete;
+    setDeleting(true);
     try {
-      await deleteDoc(doc(db, 'cats', catId));
-      setMyCats((prev) => prev.filter((c) => c.id !== catId));
+      await deleteDoc(doc(db, 'cats', id));
+      setMyCats((prev) => prev.filter((c) => c.id !== id));
     } catch (error) {
       console.error('Error deleting entry:', error);
-      alert('Could not delete right now. Please try again.');
+    } finally {
+      setDeleting(false);
+      setConfirmDelete(null);
     }
   };
 
@@ -345,7 +352,7 @@ export function ProfileScreen() {
                     <p className="text-white font-black text-sm">{cat.score} Votes</p>
                   </div>
                   <button
-                    onClick={() => handleDeleteCat(cat.id, cat.name)}
+                    onClick={() => setConfirmDelete({ id: cat.id, name: cat.name })}
                     className="absolute top-2 right-2 p-1.5 bg-red-500/80 backdrop-blur-md rounded-full opacity-90 hover:opacity-100 active:scale-95 transition-all"
                     aria-label="Delete entry"
                   >
@@ -388,13 +395,39 @@ export function ProfileScreen() {
         </div>
       </div>
 
-      <SettingsModal 
-        isOpen={isSettingsOpen} 
-        onClose={() => setIsSettingsOpen(false)} 
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
         userProfile={userProfile as any}
         currentUser={user}
         onUpdate={() => {}}
       />
+
+      {/* Delete confirmation (in-app, not a native dialog) */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center p-6 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-[320px] shadow-2xl text-center">
+            <h3 className="font-black text-lg text-neutral-800 mb-1">Remove {confirmDelete.name}'s entry?</h3>
+            <p className="text-sm text-neutral-500 mb-5">This deletes the video from the competition. This can't be undone.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                disabled={deleting}
+                className="flex-1 py-3 rounded-2xl font-bold text-neutral-600 bg-neutral-100 active:scale-95 transition-transform"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={performDelete}
+                disabled={deleting}
+                className="flex-1 py-3 rounded-2xl font-bold text-white bg-red-500 active:scale-95 transition-transform disabled:opacity-60"
+              >
+                {deleting ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
