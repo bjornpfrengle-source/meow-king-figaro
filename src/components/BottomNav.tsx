@@ -18,7 +18,7 @@ export function BottomNav() {
   ];
 
   return (
-    <div className="relative z-50 bg-white border-t border-pink-100 px-6 py-3 pb-6 flex justify-between items-center shadow-[0_-4px_20px_rgba(0,0,0,0.05)] rounded-t-3xl">
+    <div className="relative z-50 bg-white/80 backdrop-blur-xl border-t border-pink-100 px-6 py-3 pb-6 flex justify-between items-center shadow-[0_-4px_20px_rgba(0,0,0,0.05)] rounded-t-3xl">
       {navItems.map((item) => {
         const Icon = item.icon;
         const isActive = location.pathname === item.path;
