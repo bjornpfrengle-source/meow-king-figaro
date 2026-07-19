@@ -1,0 +1,10 @@
+import { initializeApp, cert } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import { readFileSync } from 'fs';
+const svc = JSON.parse(readFileSync(new URL('../serviceAccountKey.json', import.meta.url)));
+const app = initializeApp({ credential: cert(svc) });
+const db = getFirestore(app, 'ai-studio-9d6ee796-8f1c-47a8-ac92-44863325253b');
+const snap = await db.collection('themes').orderBy('startAt','asc').get();
+snap.forEach(d => { const t=d.data(); console.log(`${d.id}  |  ${t.title}  |  ${t.startAt?.toDate?.().toISOString?.()||''}`); });
+console.log(`\nTotal: ${snap.size}`);
+process.exit(0);

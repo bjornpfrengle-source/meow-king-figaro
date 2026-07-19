@@ -1,0 +1,11 @@
+import { initializeApp, cert } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+import { readFileSync } from 'fs';
+const svc = JSON.parse(readFileSync(new URL('../serviceAccountKey.json', import.meta.url)));
+const app = initializeApp({ credential: cert(svc) });
+const db = getFirestore(app, 'ai-studio-9d6ee796-8f1c-47a8-ac92-44863325253b');
+await db.collection('themes').doc('DO84oRisEWZXP1exTCbW').delete();
+console.log('Deleted test theme Hidey-Hole');
+const snap = await db.collection('themes').get();
+console.log('Themes now:', snap.size);
+process.exit(0);

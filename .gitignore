@@ -8,3 +8,6 @@ coverage/
 !.env.example
 chunks/
 uploads/
+
+# Firebase service account key (never commit)
+serviceAccountKey.json
