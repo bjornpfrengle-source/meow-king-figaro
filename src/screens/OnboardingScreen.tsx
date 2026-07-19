@@ -79,18 +79,30 @@ export function OnboardingScreen() {
       <div className="flex-1 relative overflow-hidden">
         <AnimatePresence mode="wait">
           {step === 0 && (
-            <motion.div 
+            <motion.div
               key="step1"
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
-              className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center"
+              className="absolute inset-0 flex flex-col items-center justify-end text-center"
             >
-              <div className="w-40 h-40 bg-pink-100 rounded-full flex items-center justify-center mb-8">
-                <Cat className="w-20 h-20 text-pink-500" />
+              {/* Full-bleed cat photo background */}
+              <img
+                src="/onboarding-cat.png"
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+              {/* Dark scrim so the text stays readable over the photo */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/25" />
+
+              <div className="relative z-10 px-8 pb-16">
+                <h1 className="text-4xl font-black mb-4 leading-tight shimmer-text drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
+                  Welcome to<br />Cat Chaos Arena
+                </h1>
+                <p className="text-lg font-bold shimmer-text drop-shadow-[0_2px_6px_rgba(0,0,0,0.5)]">
+                  Where your cat battles for cuteness glory!
+                </p>
               </div>
-              <h1 className="text-3xl font-black text-neutral-800 mb-4">Welcome to<br/>Cat Chaos Arena</h1>
-              <p className="text-neutral-500 font-medium text-lg">Where your cat battles for cuteness glory!</p>
             </motion.div>
           )}
 

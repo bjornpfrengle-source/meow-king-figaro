@@ -1,1 +1,26 @@
 @import "tailwindcss";
+
+/* Reading-speed colour sweep for the onboarding welcome text */
+.shimmer-text {
+  background-image: linear-gradient(
+    100deg,
+    #ffffff 0%,
+    #ffffff 38%,
+    #ffd6ec 47%,
+    #fb923c 50%,
+    #ffd6ec 53%,
+    #ffffff 62%,
+    #ffffff 100%
+  );
+  background-size: 220% 100%;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer-sweep 3.2s linear infinite;
+}
+@keyframes shimmer-sweep {
+  0%   { background-position: 160% 0; }
+  100% { background-position: -60% 0; }
+}
