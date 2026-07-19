@@ -76,7 +76,14 @@ export function OnboardingScreen() {
 
   return (
     <div className="absolute inset-0 z-50 bg-[#FFF5F5] flex flex-col">
-      <div className="flex-1 relative overflow-hidden">
+      {/* Full-screen cat photo behind the whole welcome step (covers footer too) */}
+      {step === 0 && (
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <img src="/onboarding-cat.png" alt="" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10" />
+        </div>
+      )}
+      <div className="flex-1 relative overflow-hidden z-10">
         <AnimatePresence mode="wait">
           {step === 0 && (
             <motion.div
@@ -86,23 +93,19 @@ export function OnboardingScreen() {
               exit={{ opacity: 0, x: -50 }}
               className="absolute inset-0 flex flex-col items-center justify-end text-center"
             >
-              {/* Full-bleed cat photo background */}
-              <img
-                src="/onboarding-cat.png"
-                alt=""
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-              {/* Dark scrim so the text stays readable over the photo */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/25" />
-
-              <div className="relative z-10 px-8 pb-16">
-                <h1 className="text-4xl font-black mb-4 leading-tight shimmer-text drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
+              <motion.div
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25, duration: 0.6, ease: 'easeOut' }}
+                className="px-8 pb-10"
+              >
+                <h1 className="text-4xl font-black mb-3 leading-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]">
                   Welcome to<br />Cat Chaos Arena
                 </h1>
-                <p className="text-lg font-bold shimmer-text drop-shadow-[0_2px_6px_rgba(0,0,0,0.5)]">
+                <p className="text-lg font-bold text-white/95 drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
                   Where your cat battles for cuteness glory!
                 </p>
-              </div>
+              </motion.div>
             </motion.div>
           )}
 
@@ -235,7 +238,7 @@ export function OnboardingScreen() {
       </div>
 
       {/* Footer / Controls */}
-      <div className="p-8 pt-0 flex flex-col items-center">
+      <div className="relative z-10 p-8 pt-0 flex flex-col items-center">
         <div className="flex gap-2 mb-8">
           {[0, 1, 2, 3].map((i) => (
             <div key={i} className={`h-2 rounded-full transition-all ${step === i ? 'w-8 bg-pink-500' : 'w-2 bg-pink-200'}`} />
