@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { ChevronLeft, Send, Heart } from 'lucide-react';
+import { ChevronLeft, Send } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase';
@@ -80,7 +80,9 @@ export function ChatScreen() {
         </button>
         <div>
           <h1 className="text-lg font-black text-neutral-800 leading-tight">Community Hub</h1>
-          <p className="text-xs font-bold text-teal-500">{messages.length} comments</p>
+          <p className="text-xs font-bold text-teal-500">
+            {messages.length} comments <span className="text-neutral-400 font-medium">· type @moderator for help</span>
+          </p>
         </div>
       </div>
 
@@ -112,7 +114,6 @@ export function ChatScreen() {
                   </div>
                   <p className="text-sm text-neutral-700 leading-relaxed break-words">{msg.text}</p>
                 </div>
-                <Heart className="w-4 h-4 text-neutral-300 shrink-0 mt-1" />
               </motion.div>
             ))
         )}
