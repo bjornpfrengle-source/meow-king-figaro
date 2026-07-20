@@ -87,7 +87,7 @@ export function OnboardingScreen() {
       {/* Full-screen grass playground behind "Pick your cats" */}
       {step === 1 && (
         <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-          <img src="/onboarding-grass.png" alt="" className="w-full h-full object-cover scale-[1.2] object-top" />
+          <img src="/onboarding-grass.png" alt="" className="w-full h-full object-cover object-center" />
           <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/15 to-black/45" />
         </div>
       )}
