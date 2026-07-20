@@ -1,1 +1,12 @@
 @import "tailwindcss";
+
+/* Gentle Ken Burns slow zoom for the onboarding hero photo */
+.kenburns {
+  animation: kenburns 20s ease-in-out infinite alternate;
+  transform-origin: 50% 38%;
+  will-change: transform;
+}
+@keyframes kenburns {
+  from { transform: scale(1); }
+  to   { transform: scale(1.12); }
+}

@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { ChevronLeft, Send } from 'lucide-react';
+import { ChevronLeft, Send, Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, Timestamp, doc, updateDoc, increment, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
 
@@ -13,6 +13,8 @@ interface Message {
   userName: string;
   userAvatar: string;
   createdAt: Timestamp | null;
+  likes?: number;
+  likedBy?: string[];
 }
 
 function timeAgo(ts: Timestamp | null): string {
@@ -46,6 +48,19 @@ export function ChatScreen() {
     }, (error) => console.error('Error fetching messages:', error));
     return () => unsubscribe();
   }, [user]);
+
+  const handleLikeMessage = async (msg: Message) => {
+    if (!user) return;
+    const liked = (msg.likedBy || []).includes(user.uid);
+    try {
+      await updateDoc(doc(db, 'messages', msg.id), {
+        likes: increment(liked ? -1 : 1),
+        likedBy: liked ? arrayRemove(user.uid) : arrayUnion(user.uid),
+      });
+    } catch (e) {
+      console.error('Error liking message:', e);
+    }
+  };
 
   const handleSendMessage = async () => {
     if (!message.trim()) return;
@@ -114,6 +129,12 @@ export function ChatScreen() {
                   </div>
                   <p className="text-sm text-neutral-700 leading-relaxed break-words">{msg.text}</p>
                 </div>
+                {(() => { const liked = !!user && (msg.likedBy || []).includes(user.uid); return (
+                  <button onClick={() => handleLikeMessage(msg)} className={`flex flex-col items-center gap-0.5 shrink-0 mt-1 active:scale-90 transition-transform ${liked ? 'text-pink-500' : 'text-neutral-300 hover:text-pink-400'}`}>
+                    <Heart className={`w-4 h-4 ${liked ? 'fill-pink-500' : ''}`} />
+                    {(msg.likes ?? 0) > 0 && <span className="text-[9px] font-bold">{msg.likes}</span>}
+                  </button>
+                ); })()}
               </motion.div>
             ))
         )}

@@ -78,9 +78,10 @@ export function OnboardingScreen() {
     <div className="absolute inset-0 z-50 bg-[#FFF5F5] flex flex-col">
       {/* Full-screen cat photo behind the whole welcome step (covers footer too) */}
       {step === 0 && (
-        <div className="absolute inset-0 z-0 pointer-events-none">
-          <img src="/onboarding-cat.png" alt="" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10" />
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+          <img src="/onboarding-cat.png" alt="" className="w-full h-full object-cover kenburns" />
+          {/* Dark at top (for the title) and bottom (for the button), clear in the middle so the cat pops */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-black/5 to-black/85" />
         </div>
       )}
       <div className="flex-1 relative overflow-hidden z-10">
@@ -91,13 +92,13 @@ export function OnboardingScreen() {
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
-              className="absolute inset-0 flex flex-col items-center justify-end text-center"
+              className="absolute inset-0 flex flex-col items-center justify-start text-center"
             >
               <motion.div
-                initial={{ opacity: 0, y: 24 }}
+                initial={{ opacity: 0, y: -16 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.25, duration: 0.6, ease: 'easeOut' }}
-                className="px-8 pb-10"
+                transition={{ delay: 0.2, duration: 0.6, ease: 'easeOut' }}
+                className="px-8 pt-10"
               >
                 <h1 className="text-4xl font-black mb-3 leading-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]">
                   Welcome to<br />Cat Chaos Arena

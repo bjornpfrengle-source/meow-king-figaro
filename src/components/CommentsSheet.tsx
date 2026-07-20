@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Heart, Send, Loader2, Flag } from 'lucide-react';
-import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, increment } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, doc, updateDoc, increment, getDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
@@ -14,6 +14,7 @@ interface Comment {
   userAvatar: string;
   text: string;
   likes: number;
+  likedBy?: string[];
   createdAt: any;
 }
 
@@ -26,6 +27,26 @@ export function CommentsSheet({ isOpen, onClose, catId }: { isOpen: boolean, onC
   const navigate = useNavigate();
   const commentsEndRef = useRef<HTMLDivElement>(null);
   const [reportCommentTarget, setReportCommentTarget] = useState<{ id: string; name: string } | null>(null);
+  const [catOwner, setCatOwner] = useState<{ ownerId: string; name: string; avatar: string; catName: string } | null>(null);
+
+  // Fetch whose cat this is, so viewers can see the owner in the header
+  useEffect(() => {
+    if (!isOpen || !catId) { setCatOwner(null); return; }
+    (async () => {
+      try {
+        const catSnap = await getDoc(doc(db, 'cats', catId));
+        if (!catSnap.exists()) return;
+        const cat: any = catSnap.data();
+        let name = 'Anonymous';
+        let avatar = '';
+        if (cat.ownerId) {
+          const uSnap = await getDoc(doc(db, 'users', cat.ownerId));
+          if (uSnap.exists()) { name = uSnap.data().displayName || 'Anonymous'; avatar = uSnap.data().photoURL || ''; }
+        }
+        setCatOwner({ ownerId: cat.ownerId || '', name, avatar, catName: cat.name || 'this cat' });
+      } catch (e) { /* ignore */ }
+    })();
+  }, [isOpen, catId]);
 
   useEffect(() => {
     if (!isOpen || !catId) return;
@@ -85,16 +106,16 @@ export function CommentsSheet({ isOpen, onClose, catId }: { isOpen: boolean, onC
     }
   };
 
-  const handleLike = async (commentId: string) => {
+  const handleLike = async (comment: Comment) => {
     if (!user) {
       await signIn();
       return;
     }
-    
+    const liked = (comment.likedBy || []).includes(user.uid);
     try {
-      const commentRef = doc(db, 'comments', commentId);
-      await updateDoc(commentRef, {
-        likes: increment(1)
+      await updateDoc(doc(db, 'comments', comment.id), {
+        likes: increment(liked ? -1 : 1),
+        likedBy: liked ? arrayRemove(user.uid) : arrayUnion(user.uid),
       });
     } catch (error) {
       console.error('Error liking comment:', error);
@@ -130,10 +151,28 @@ export function CommentsSheet({ isOpen, onClose, catId }: { isOpen: boolean, onC
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             className="fixed bottom-0 left-0 right-0 mx-auto max-w-[400px] h-[70%] bg-white rounded-t-3xl z-[70] flex flex-col overflow-hidden shadow-2xl"
           >
-            {/* Header */}
-            <div className="flex justify-between items-center p-5 border-b border-pink-50 bg-white/80 backdrop-blur-md">
-              <h3 className="font-black text-neutral-800 text-lg">Community Chat ({comments.length})</h3>
-              <button onClick={onClose} className="p-2 bg-neutral-100 rounded-full text-neutral-600 active:scale-95 transition-transform">
+            {/* Header — shows whose cat this is */}
+            <div className="flex justify-between items-center p-4 border-b border-pink-50 bg-white/80 backdrop-blur-md">
+              <div className="flex items-center gap-3 min-w-0">
+                {catOwner && (
+                  <img
+                    onClick={() => { if (catOwner.ownerId) { onClose(); navigate(`/user/${catOwner.ownerId}`); } }}
+                    src={catOwner.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(catOwner.name)}&background=random`}
+                    alt={catOwner.name}
+                    className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm shrink-0 cursor-pointer"
+                    referrerPolicy="no-referrer"
+                  />
+                )}
+                <div className="min-w-0">
+                  <h3 className="font-black text-neutral-800 text-base truncate leading-tight">
+                    {catOwner ? catOwner.catName : 'Comments'}
+                  </h3>
+                  <p className="text-[11px] font-bold text-neutral-400 truncate">
+                    {catOwner ? `${catOwner.name} · ${comments.length} comments` : `${comments.length} comments`}
+                  </p>
+                </div>
+              </div>
+              <button onClick={onClose} className="p-2 bg-neutral-100 rounded-full text-neutral-600 active:scale-95 transition-transform shrink-0">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -160,9 +199,11 @@ export function CommentsSheet({ isOpen, onClose, catId }: { isOpen: boolean, onC
                       <p className="text-neutral-600 text-sm leading-relaxed">{comment.text}</p>
                     </div>
                     <div className="flex flex-col items-center gap-1 text-neutral-400 pt-2">
-                      <button onClick={() => handleLike(comment.id)} className="active:scale-90 transition-transform hover:text-pink-500">
-                        <Heart className="w-5 h-5" />
-                      </button>
+                      {(() => { const liked = !!user && (comment.likedBy || []).includes(user.uid); return (
+                        <button onClick={() => handleLike(comment)} className={`active:scale-90 transition-transform ${liked ? 'text-pink-500' : 'hover:text-pink-500'}`}>
+                          <Heart className={`w-5 h-5 ${liked ? 'fill-pink-500' : ''}`} />
+                        </button>
+                      ); })()}
                       <span className="text-[10px] font-bold">{comment.likes}</span>
                       {comment.userId !== user?.uid && (
                         <button

@@ -302,7 +302,7 @@ export function UploadScreen() {
           <>
             <input 
               type="file" 
-              accept="video/*" 
+              accept="video/*,.mov,.mp4,.m4v,.avi,.mkv,.webm,.hevc,.3gp,.mpg,.mpeg,.wmv,.flv" 
               className="hidden" 
               ref={fileInputRef} 
               onChange={handleFileChange} 
