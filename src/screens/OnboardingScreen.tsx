@@ -216,14 +216,26 @@ export function OnboardingScreen() {
           {step === 3 && (
             <motion.div
               key="step4"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
+              initial="hidden"
+              animate="visible"
               exit={{ opacity: 0, x: -50 }}
+              variants={{
+                hidden: {},
+                visible: { transition: { staggerChildren: 0.22, delayChildren: 0.5 } }
+              }}
               className="absolute inset-0 flex flex-col justify-end p-8 pb-4"
             >
-              <h2 className="text-3xl font-black text-white mb-6 text-center drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]">Ready to play?</h2>
+              <motion.h2
+                variants={{ hidden: { opacity: 0, y: 50 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } } }}
+                className="text-3xl font-black text-white mb-6 text-center drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]"
+              >
+                Ready to play?
+              </motion.h2>
 
-              <div className="space-y-3 mb-4">
+              <motion.div
+                variants={{ hidden: { opacity: 0, y: 40 }, visible: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } } }}
+                className="space-y-3 mb-4"
+              >
                 {!user ? (
                   <>
                     <button onClick={signInWithApple} className="w-full bg-black text-white py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 active:scale-95 transition-transform">
@@ -238,18 +250,24 @@ export function OnboardingScreen() {
                     <Check className="w-5 h-5" /> Signed in as {user.displayName}
                   </div>
                 )}
-              </div>
+              </motion.div>
 
-              <label className="flex items-start gap-3 bg-white/90 backdrop-blur-sm p-4 rounded-2xl border border-pink-50 mb-3">
+              <motion.label
+                variants={{ hidden: { opacity: 0, y: 25 }, visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: 'easeOut' } } }}
+                className="flex items-start gap-3 bg-white/90 backdrop-blur-sm p-4 rounded-2xl border border-pink-50 mb-3"
+              >
                 <div className="w-6 h-6 rounded border-2 border-pink-500 flex items-center justify-center shrink-0 mt-0.5 bg-pink-500 text-white">
                   <Check className="w-4 h-4" />
                 </div>
                 <p className="text-xs font-medium text-neutral-600 leading-relaxed">
                   Allow us to repost your cat's best moments on our socials for exposure (you keep all rights).
                 </p>
-              </label>
+              </motion.label>
 
-              <p className="text-[11px] text-white/85 text-center leading-relaxed px-2 drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">
+              <motion.p
+                variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { duration: 0.4 } } }}
+                className="text-[11px] text-white/85 text-center leading-relaxed px-2 drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]"
+              >
                 By continuing you agree to our{' '}
                 <button
                   onClick={() => navigate('/terms')}
@@ -258,7 +276,7 @@ export function OnboardingScreen() {
                   Terms of Use
                 </button>
                 , including our zero-tolerance policy for objectionable content and abusive users.
-              </p>
+              </motion.p>
             </motion.div>
           )}
         </AnimatePresence>
