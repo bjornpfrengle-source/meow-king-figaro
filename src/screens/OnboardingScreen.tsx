@@ -87,7 +87,7 @@ export function OnboardingScreen() {
       {/* Full-screen grass playground behind "Pick your cats" */}
       {step === 1 && (
         <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-          <img src="/onboarding-grass.png" alt="" className="w-full h-full object-cover" />
+          <img src="/onboarding-grass.png" alt="" className="w-full h-full object-cover scale-[1.15] object-center" />
           <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/15 to-black/45" />
         </div>
       )}
@@ -101,8 +101,8 @@ export function OnboardingScreen() {
       {/* Champion cat behind "Ready to play?" */}
       {step === 3 && (
         <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-          <img src="/onboarding-champion.png" alt="" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/25 to-black/75" />
+          <img src="/onboarding-champion.png" alt="" className="w-full h-full object-cover object-top" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/85" />
         </div>
       )}
       <div className="flex-1 relative overflow-hidden z-10">
@@ -214,16 +214,16 @@ export function OnboardingScreen() {
           )}
 
           {step === 3 && (
-            <motion.div 
+            <motion.div
               key="step4"
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
-              className="absolute inset-0 flex flex-col p-8 pt-20"
+              className="absolute inset-0 flex flex-col justify-end p-8 pb-4"
             >
-              <h2 className="text-2xl font-black text-white mb-8 text-center drop-shadow-[0_2px_8px_rgba(0,0,0,0.75)]">Ready to play?</h2>
-              
-              <div className="space-y-3 mb-8">
+              <h2 className="text-3xl font-black text-white mb-6 text-center drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]">Ready to play?</h2>
+
+              <div className="space-y-3 mb-4">
                 {!user ? (
                   <>
                     <button onClick={signInWithApple} className="w-full bg-black text-white py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 active:scale-95 transition-transform">
@@ -240,7 +240,7 @@ export function OnboardingScreen() {
                 )}
               </div>
 
-              <label className="flex items-start gap-3 bg-white p-4 rounded-2xl border border-pink-50">
+              <label className="flex items-start gap-3 bg-white/90 backdrop-blur-sm p-4 rounded-2xl border border-pink-50 mb-3">
                 <div className="w-6 h-6 rounded border-2 border-pink-500 flex items-center justify-center shrink-0 mt-0.5 bg-pink-500 text-white">
                   <Check className="w-4 h-4" />
                 </div>
@@ -249,7 +249,7 @@ export function OnboardingScreen() {
                 </p>
               </label>
 
-              <p className="text-[11px] text-white/85 text-center leading-relaxed mt-4 px-2 drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">
+              <p className="text-[11px] text-white/85 text-center leading-relaxed px-2 drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">
                 By continuing you agree to our{' '}
                 <button
                   onClick={() => navigate('/terms')}
