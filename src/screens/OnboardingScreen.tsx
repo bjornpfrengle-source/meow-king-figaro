@@ -10,7 +10,7 @@ import { db, storage } from '../firebase';
 export function OnboardingScreen() {
   const [step, setStep] = useState(0);
   const navigate = useNavigate();
-  const { user, signIn } = useFirebase();
+  const { user, signIn, signInWithApple } = useFirebase();
   
   const [catName, setCatName] = useState('');
   const [catBreed, setCatBreed] = useState('');
@@ -221,8 +221,8 @@ export function OnboardingScreen() {
               <div className="space-y-3 mb-8">
                 {!user ? (
                   <>
-                    <button className="w-full bg-white border-2 border-neutral-200 text-neutral-700 py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2">
-                      Continue with Apple
+                    <button onClick={signInWithApple} className="w-full bg-black text-white py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 active:scale-95 transition-transform">
+                       Continue with Apple
                     </button>
                     <button onClick={signIn} className="w-full bg-white border-2 border-neutral-200 text-neutral-700 py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2">
                       Continue with Google

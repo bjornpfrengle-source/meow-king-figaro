@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, signInWithPopup, signOut } from 'firebase/auth';
+import { User, signInWithPopup, signOut, OAuthProvider, signInWithCredential } from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../firebase';
 
@@ -32,6 +32,7 @@ interface FirebaseContextType {
   isAuthReady: boolean;
   isAdmin: boolean;
   signIn: () => Promise<void>;
+  signInWithApple: () => Promise<void>;
   logOut: () => Promise<void>;
 }
 
@@ -101,6 +102,46 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Sign in with Apple. Inside the iOS app we use the NATIVE Apple sheet via a
+  // bridge (no scary popup); in a plain browser we fall back to the web popup.
+  const signInWithApple = async () => {
+    const provider = new OAuthProvider('apple.com');
+    provider.addScope('email');
+    provider.addScope('name');
+    const bridge = (window as any).webkit?.messageHandlers?.appleSignIn;
+
+    if (bridge) {
+      // Native path: ask the wrapper to present Apple's sheet, then sign in
+      // to Firebase with the returned identity token + nonce.
+      await new Promise<void>((resolve, reject) => {
+        (window as any).__onAppleSignIn = async (idToken: string, rawNonce: string) => {
+          try {
+            const cred = provider.credential({ idToken, rawNonce });
+            await signInWithCredential(auth, cred);
+            resolve();
+          } catch (e) {
+            console.error('Apple credential sign-in failed:', e);
+            reject(e);
+          }
+        };
+        (window as any).__onAppleSignInError = (msg: string) => {
+          console.warn('Apple sign-in cancelled/failed:', msg);
+          resolve(); // treat cancel quietly
+        };
+        try { bridge.postMessage({}); } catch (e) { reject(e); }
+      });
+      return;
+    }
+
+    // Browser fallback (e.g. testing on the web)
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error: any) {
+      if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') return;
+      console.error('Error signing in with Apple:', error);
+    }
+  };
+
   const logOut = async () => {
     try {
       await signOut(auth);
@@ -112,7 +153,7 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   const isAdmin = userProfile?.role === 'admin' || user?.email === OWNER_EMAIL;
 
   return (
-    <FirebaseContext.Provider value={{ user, userProfile, isAuthReady, isAdmin, signIn, logOut }}>
+    <FirebaseContext.Provider value={{ user, userProfile, isAuthReady, isAdmin, signIn, signInWithApple, logOut }}>
       {children}
     </FirebaseContext.Provider>
   );
