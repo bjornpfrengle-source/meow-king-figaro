@@ -121,11 +121,16 @@ export function OnboardingScreen() {
                 transition={{ delay: 0.2, duration: 0.6, ease: 'easeOut' }}
                 className="px-8 pt-10"
               >
-                <h1 className="text-4xl font-black mb-3 leading-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)]">
-                  Welcome to<br />Cat Chaos Arena
+                <h1 className="text-4xl font-black mb-3 leading-tight drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)]">
+                  <span className="text-white">Welcome to</span><br />
+                  <span className="text-pink-400">Cat</span>{' '}
+                  <span className="text-orange-400">Chaos</span>{' '}
+                  <span className="text-teal-300">Arena</span>
                 </h1>
-                <p className="text-lg font-bold text-white/95 drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
-                  Where your cat battles for cuteness glory!
+                <p className="text-lg font-bold text-white/95 drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)]">
+                  Where your cat battles for{' '}
+                  <span className="text-pink-400">cuteness</span>{' '}
+                  <span className="text-orange-300">glory!</span>
                 </p>
               </motion.div>
             </motion.div>
