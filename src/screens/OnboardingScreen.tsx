@@ -142,7 +142,7 @@ export function OnboardingScreen() {
               <h2 className="text-2xl font-black text-white mb-2 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">Pick your cats</h2>
               <p className="text-white/90 font-medium mb-8 drop-shadow-[0_2px_6px_rgba(0,0,0,0.7)]">Add your furry competitors.</p>
               
-              <div className="bg-white p-6 rounded-3xl shadow-sm border border-pink-50 space-y-4">
+              <div className="bg-white/20 backdrop-blur-xl p-6 rounded-3xl shadow-lg border border-white/40 space-y-4">
                 <div 
                   onClick={() => fileInputRef.current?.click()}
                   className="w-20 h-20 bg-neutral-100 rounded-full mx-auto flex items-center justify-center text-neutral-400 mb-4 cursor-pointer overflow-hidden relative"
@@ -165,19 +165,19 @@ export function OnboardingScreen() {
                   placeholder="Cat's Name" 
                   value={catName}
                   onChange={(e) => setCatName(e.target.value)}
-                  className="w-full bg-neutral-50 border border-neutral-200 rounded-2xl px-4 py-3 outline-none focus:border-pink-400 font-medium" 
+                  className="w-full bg-white/70 border border-white/60 rounded-2xl px-4 py-3 outline-none focus:border-pink-400 font-medium" 
                 />
                 <input 
                   type="text" 
                   placeholder="Breed (Optional)" 
                   value={catBreed}
                   onChange={(e) => setCatBreed(e.target.value)}
-                  className="w-full bg-neutral-50 border border-neutral-200 rounded-2xl px-4 py-3 outline-none focus:border-pink-400 font-medium" 
+                  className="w-full bg-white/70 border border-white/60 rounded-2xl px-4 py-3 outline-none focus:border-pink-400 font-medium" 
                 />
                 <select
                   value={catAge}
                   onChange={(e) => setCatAge(e.target.value)}
-                  className={`w-full bg-neutral-50 border border-neutral-200 rounded-2xl px-4 py-3 outline-none focus:border-pink-400 font-medium ${!catAge ? 'text-neutral-400' : 'text-neutral-800'}`}
+                  className={`w-full bg-white/70 border border-white/60 rounded-2xl px-4 py-3 outline-none focus:border-pink-400 font-medium ${!catAge ? 'text-neutral-400' : 'text-neutral-800'}`}
                 >
                   <option value="" disabled hidden>Approximate Age (Optional)</option>
                   <option value="Kitten (under 1 year)">Kitten (under 1 year)</option>
