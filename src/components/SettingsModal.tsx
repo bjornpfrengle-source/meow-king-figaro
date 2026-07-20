@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Camera, Save, Loader2 } from 'lucide-react';
+import { X, Camera, Save, Loader2, LogOut } from 'lucide-react';
 import { doc, setDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { User } from 'firebase/auth';
+import { useNavigate } from 'react-router-dom';
+import { useFirebase } from './FirebaseProvider';
 
 enum OperationType {
   CREATE = 'create',
@@ -92,6 +94,14 @@ export function SettingsModal({ isOpen, onClose, userProfile, currentUser, onUpd
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeThumbnailField, setActiveThumbnailField] = useState<'catThumbnailUrl' | 'catThumbnailUrl2' | null>(null);
+  const { logOut } = useFirebase();
+  const navigate = useNavigate();
+
+  const handleLogOut = async () => {
+    await logOut();
+    onClose();
+    navigate('/onboarding');
+  };
 
   useEffect(() => {
     if (userProfile) {
@@ -363,6 +373,14 @@ export function SettingsModal({ isOpen, onClose, userProfile, currentUser, onUpd
                   </div>
                   <p className="text-[10px] text-neutral-400 mt-1.5 font-medium">We'll tag this handle if your cat is featured on our socials!</p>
                 </div>
+
+                {/* Log out */}
+                <button
+                  onClick={handleLogOut}
+                  className="w-full mt-2 flex items-center justify-center gap-2 bg-neutral-100 text-neutral-700 py-3.5 rounded-xl font-bold active:scale-95 transition-transform"
+                >
+                  <LogOut className="w-5 h-5" /> Log Out
+                </button>
               </div>
             </div>
           </motion.div>
