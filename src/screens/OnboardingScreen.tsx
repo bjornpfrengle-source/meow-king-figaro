@@ -84,6 +84,13 @@ export function OnboardingScreen() {
           <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-black/5 to-black/85" />
         </div>
       )}
+      {/* Full-screen grass playground behind "Pick your cats" */}
+      {step === 1 && (
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+          <img src="/onboarding-grass.png" alt="" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/15 to-black/45" />
+        </div>
+      )}
       <div className="flex-1 relative overflow-hidden z-10">
         <AnimatePresence mode="wait">
           {step === 0 && (
@@ -118,8 +125,8 @@ export function OnboardingScreen() {
               exit={{ opacity: 0, x: -50 }}
               className="absolute inset-0 flex flex-col p-8 pt-20"
             >
-              <h2 className="text-2xl font-black text-neutral-800 mb-2">Pick your cats</h2>
-              <p className="text-neutral-500 font-medium mb-8">Add your furry competitors.</p>
+              <h2 className="text-2xl font-black text-white mb-2 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]">Pick your cats</h2>
+              <p className="text-white/90 font-medium mb-8 drop-shadow-[0_2px_6px_rgba(0,0,0,0.7)]">Add your furry competitors.</p>
               
               <div className="bg-white p-6 rounded-3xl shadow-sm border border-pink-50 space-y-4">
                 <div 
