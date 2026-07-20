@@ -91,6 +91,20 @@ export function OnboardingScreen() {
           <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/15 to-black/45" />
         </div>
       )}
+      {/* Soft fluffy texture behind "Daily Themes" (light image → light scrim, dark text) */}
+      {step === 2 && (
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+          <img src="/onboarding-fluff.png" alt="" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/55 via-white/25 to-white/60" />
+        </div>
+      )}
+      {/* Champion cat behind "Ready to play?" */}
+      {step === 3 && (
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+          <img src="/onboarding-champion.png" alt="" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/25 to-black/75" />
+        </div>
+      )}
       <div className="flex-1 relative overflow-hidden z-10">
         <AnimatePresence mode="wait">
           {step === 0 && (
@@ -202,7 +216,7 @@ export function OnboardingScreen() {
               exit={{ opacity: 0, x: -50 }}
               className="absolute inset-0 flex flex-col p-8 pt-20"
             >
-              <h2 className="text-2xl font-black text-neutral-800 mb-8 text-center">Ready to play?</h2>
+              <h2 className="text-2xl font-black text-white mb-8 text-center drop-shadow-[0_2px_8px_rgba(0,0,0,0.75)]">Ready to play?</h2>
               
               <div className="space-y-3 mb-8">
                 {!user ? (
@@ -230,7 +244,7 @@ export function OnboardingScreen() {
                 </p>
               </label>
 
-              <p className="text-[11px] text-neutral-500 text-center leading-relaxed mt-4 px-2">
+              <p className="text-[11px] text-white/85 text-center leading-relaxed mt-4 px-2 drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]">
                 By continuing you agree to our{' '}
                 <button
                   onClick={() => navigate('/terms')}
