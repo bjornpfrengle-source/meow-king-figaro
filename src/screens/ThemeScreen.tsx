@@ -57,22 +57,32 @@ export function ThemeScreen() {
             )}
 
             {/* Upcoming challenges */}
-            {upcoming.map((t) => (
-              <div key={t.id} className="bg-white border-2 border-neutral-100 rounded-[2rem] p-6 text-neutral-800 shadow-sm relative overflow-hidden">
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Clock className="w-4 h-4 text-neutral-400" />
-                    <span className="font-bold text-neutral-400 tracking-wide uppercase text-sm">Upcoming Challenge</span>
-                  </div>
-                  <h2 className="text-2xl font-black mb-2 leading-tight text-neutral-800">{t.title}</h2>
-                  <p className="text-neutral-500 font-medium mb-4 text-sm">{t.description}</p>
-                  <div className="w-full bg-neutral-100 text-neutral-500 font-black py-3 rounded-2xl flex items-center justify-center gap-2">
-                    <Clock className="w-5 h-5" />
-                    Starts in <Countdown toMs={t.startMs} />
+            {upcoming.map((t, i) => {
+              const palettes = [
+                { card: 'bg-pink-50 border-pink-100', label: 'text-pink-400', clock: 'text-pink-300', pill: 'bg-pink-100 text-pink-500' },
+                { card: 'bg-orange-50 border-orange-100', label: 'text-orange-400', clock: 'text-orange-300', pill: 'bg-orange-100 text-orange-500' },
+                { card: 'bg-teal-50 border-teal-100', label: 'text-teal-500', clock: 'text-teal-400', pill: 'bg-teal-100 text-teal-600' },
+                { card: 'bg-yellow-50 border-yellow-100', label: 'text-yellow-500', clock: 'text-yellow-400', pill: 'bg-yellow-100 text-yellow-600' },
+                { card: 'bg-purple-50 border-purple-100', label: 'text-purple-400', clock: 'text-purple-300', pill: 'bg-purple-100 text-purple-500' },
+              ];
+              const p = palettes[i % palettes.length];
+              return (
+                <div key={t.id} className={`${p.card} border-2 rounded-[2rem] p-6 text-neutral-800 shadow-sm relative overflow-hidden`}>
+                  <div className="relative z-10">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Clock className={`w-4 h-4 ${p.clock}`} />
+                      <span className={`font-bold ${p.label} tracking-wide uppercase text-sm`}>Upcoming Challenge</span>
+                    </div>
+                    <h2 className="text-2xl font-black mb-2 leading-tight text-neutral-800">{t.title}</h2>
+                    <p className="text-neutral-500 font-medium mb-4 text-sm">{t.description}</p>
+                    <div className={`w-full ${p.pill} font-black py-3 rounded-2xl flex items-center justify-center gap-2`}>
+                      <Clock className="w-5 h-5" />
+                      Starts in <Countdown toMs={t.startMs} />
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </>
         )}
       </div>
