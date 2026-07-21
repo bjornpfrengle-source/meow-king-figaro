@@ -430,22 +430,6 @@ export function VoteScreen() {
 
         {/* VS Badge */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none">
-          {/* Pulse ring — expands and fades on each new battle */}
-          <motion.div
-            key={currentPair ? `pulse-${currentPair.cat1.id}-${currentPair.cat2.id}` : 'pulse'}
-            initial={{ scale: 1, opacity: 0.45 }}
-            animate={{ scale: 4, opacity: 0 }}
-            transition={{ duration: 0.7, ease: 'easeOut', delay: 0.15 }}
-            className="absolute inset-0 rounded-full bg-white"
-          />
-          {/* Second softer ring, slightly delayed */}
-          <motion.div
-            key={currentPair ? `pulse2-${currentPair.cat1.id}-${currentPair.cat2.id}` : 'pulse2'}
-            initial={{ scale: 1, opacity: 0.2 }}
-            animate={{ scale: 5.5, opacity: 0 }}
-            transition={{ duration: 0.9, ease: 'easeOut', delay: 0.25 }}
-            className="absolute inset-0 rounded-full bg-white"
-          />
           <motion.div
             key={currentPair ? `vs-${currentPair.cat1.id}-${currentPair.cat2.id}` : 'vs'}
             initial={{ scale: 0, rotate: -200 }}

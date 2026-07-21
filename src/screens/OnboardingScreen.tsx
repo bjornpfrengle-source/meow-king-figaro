@@ -216,27 +216,36 @@ export function OnboardingScreen() {
           {step === 3 && (
             <motion.div
               key="step4"
-              initial="hidden"
-              animate="visible"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0, x: -50 }}
-              variants={{
-                hidden: {},
-                visible: { transition: { staggerChildren: 0.22, delayChildren: 0.5 } }
-              }}
-              className="absolute inset-0 flex flex-col"
+              transition={{ duration: 0.2 }}
+              className="absolute inset-0 flex flex-col justify-end px-8 pb-4"
             >
-              <motion.h2
-                variants={{ hidden: { opacity: 0, y: -30 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } } }}
-                className="text-3xl font-black text-white text-center drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)] pt-16 px-8"
-              >
-                Ready to play?
-              </motion.h2>
-
-              <div className="flex-1" />
+              {/* Colourful per-word bounce title — sits just above the buttons */}
+              <div className="text-center mb-5">
+                {[
+                  { word: 'Ready', color: 'text-pink-400' },
+                  { word: 'to', color: 'text-white' },
+                  { word: 'play?', color: 'text-orange-400' },
+                ].map(({ word, color }, i) => (
+                  <motion.span
+                    key={word}
+                    initial={{ opacity: 0, y: 32 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.9 + i * 0.18, type: 'spring', stiffness: 420, damping: 13 }}
+                    className={`inline-block text-4xl font-black mr-2 drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)] ${color}`}
+                  >
+                    {word}
+                  </motion.span>
+                ))}
+              </div>
 
               <motion.div
-                variants={{ hidden: { opacity: 0, y: 40 }, visible: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } } }}
-                className="space-y-3 mb-4 px-8"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.42, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                className="space-y-3 mb-4"
               >
                 {!user ? (
                   <>
@@ -255,8 +264,10 @@ export function OnboardingScreen() {
               </motion.div>
 
               <motion.label
-                variants={{ hidden: { opacity: 0, y: 25 }, visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: 'easeOut' } } }}
-                className="flex items-start gap-3 bg-white/90 backdrop-blur-sm p-4 rounded-2xl border border-pink-50 mb-3 mx-8"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.65, duration: 0.4, ease: 'easeOut' }}
+                className="flex items-start gap-3 bg-white/90 backdrop-blur-sm p-4 rounded-2xl border border-pink-50 mb-3"
               >
                 <div className="w-6 h-6 rounded border-2 border-pink-500 flex items-center justify-center shrink-0 mt-0.5 bg-pink-500 text-white">
                   <Check className="w-4 h-4" />
@@ -267,8 +278,10 @@ export function OnboardingScreen() {
               </motion.label>
 
               <motion.p
-                variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { duration: 0.4 } } }}
-                className="text-[11px] text-white/85 text-center leading-relaxed px-10 pb-4 drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.9 }}
+                className="text-[11px] text-white/85 text-center leading-relaxed px-2 pb-2 drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]"
               >
                 By continuing you agree to our{' '}
                 <button
