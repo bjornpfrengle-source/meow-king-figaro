@@ -89,6 +89,7 @@ export function UploadScreen() {
   const [stage, setStage] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [showUploadLimit, setShowUploadLimit] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -178,6 +179,26 @@ export function UploadScreen() {
     }
 
     if (!videoFile || !caption.trim() || !catName.trim() || !selectedCatId) return;
+
+    // Daily upload limit: free users get 1 upload per day
+    if (!userProfile?.isPremium) {
+      try {
+        const todayMidnight = new Date();
+        todayMidnight.setHours(0, 0, 0, 0);
+        const allUserCats = await getDocs(query(collection(db, 'cats'), where('ownerId', '==', currentUser.uid)));
+        const todayCount = allUserCats.docs.filter(d => {
+          const ts = d.data().createdAt;
+          return ts?.toDate?.() >= todayMidnight;
+        }).length;
+        if (todayCount >= 1) {
+          setShowUploadLimit(true);
+          setIsSubmitting(false);
+          return;
+        }
+      } catch (e) {
+        console.error('Error checking daily limit:', e);
+      }
+    }
 
     // Check file size (limit to 600MB)
     if (videoFile.size > 600 * 1024 * 1024) {
@@ -529,6 +550,27 @@ export function UploadScreen() {
           </button>
         </div>
       </div>
+
+      {/* Daily upload limit upsell */}
+      {showUploadLimit && (
+        <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/50 backdrop-blur-sm p-6">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-[340px] shadow-2xl text-center mb-4">
+            <div className="text-4xl mb-3">🐱</div>
+            <h3 className="font-black text-xl text-neutral-800 mb-1">Daily Limit Reached</h3>
+            <p className="text-sm text-neutral-500 mb-5 leading-relaxed">
+              Free fighters get <span className="font-bold text-pink-500">1 upload per day</span>. Upgrade to Catnip Club for 3 daily entries, glowing borders, and priority matchmaking!
+            </p>
+            <div className="space-y-3">
+              <button
+                onClick={() => { setShowUploadLimit(false); }}
+                className="w-full py-3 rounded-2xl font-bold bg-neutral-100 text-neutral-600 active:scale-95 transition-transform"
+              >
+                Maybe Tomorrow
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -23,22 +23,28 @@ export function PrizesScreen() {
         return;
       }
       try {
-        const q = query(collection(db, 'cats'), where('ownerId', '==', user.uid));
-        const snapshot = await getDocs(q);
+        const snap = await getDocs(query(collection(db, 'cats'), where('ownerId', '==', user.uid)));
         let points = 0;
-        snapshot.forEach(doc => {
-          points += (doc.data().score || 0);
-        });
+        snap.forEach(d => { points += d.data().score || 0; });
         setTotalPoints(points);
+
+        // Auto-award any badges the user has now earned (no manual claim needed)
+        const alreadyClaimed: string[] = userProfile?.badges ?? [];
+        const toAward = DIGITAL_REWARDS
+          .filter(r => points >= r.cost && !alreadyClaimed.includes(r.id))
+          .map(r => r.id);
+        if (toAward.length > 0) {
+          await updateDoc(doc(db, 'users', user.uid), { badges: arrayUnion(...toAward) });
+        }
       } catch (error) {
-        console.error("Error fetching points:", error);
+        console.error('Error fetching points:', error);
       } finally {
         setLoading(false);
       }
     };
 
     fetchPoints();
-  }, [user]);
+  }, [user]); // intentionally excludes userProfile?.badges to avoid re-award loop
 
   const handleClaim = async (rewardId: string, cost: number) => {
     if (!user) return;
