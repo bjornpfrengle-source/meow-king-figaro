@@ -102,7 +102,7 @@ export function OnboardingScreen() {
       {step === 3 && (
         <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
           <img src="/onboarding-champion.png" alt="" className="w-full h-full object-cover object-top" />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/85" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-black/85" />
         </div>
       )}
       <div className="flex-1 relative overflow-hidden z-10">
@@ -223,18 +223,20 @@ export function OnboardingScreen() {
                 hidden: {},
                 visible: { transition: { staggerChildren: 0.22, delayChildren: 0.5 } }
               }}
-              className="absolute inset-0 flex flex-col justify-end p-8 pb-4"
+              className="absolute inset-0 flex flex-col"
             >
               <motion.h2
-                variants={{ hidden: { opacity: 0, y: 50 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } } }}
-                className="text-3xl font-black text-white mb-6 text-center drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]"
+                variants={{ hidden: { opacity: 0, y: -30 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } } }}
+                className="text-3xl font-black text-white text-center drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)] pt-16 px-8"
               >
                 Ready to play?
               </motion.h2>
 
+              <div className="flex-1" />
+
               <motion.div
                 variants={{ hidden: { opacity: 0, y: 40 }, visible: { opacity: 1, y: 0, transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } } }}
-                className="space-y-3 mb-4"
+                className="space-y-3 mb-4 px-8"
               >
                 {!user ? (
                   <>
@@ -254,7 +256,7 @@ export function OnboardingScreen() {
 
               <motion.label
                 variants={{ hidden: { opacity: 0, y: 25 }, visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: 'easeOut' } } }}
-                className="flex items-start gap-3 bg-white/90 backdrop-blur-sm p-4 rounded-2xl border border-pink-50 mb-3"
+                className="flex items-start gap-3 bg-white/90 backdrop-blur-sm p-4 rounded-2xl border border-pink-50 mb-3 mx-8"
               >
                 <div className="w-6 h-6 rounded border-2 border-pink-500 flex items-center justify-center shrink-0 mt-0.5 bg-pink-500 text-white">
                   <Check className="w-4 h-4" />
@@ -266,7 +268,7 @@ export function OnboardingScreen() {
 
               <motion.p
                 variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { duration: 0.4 } } }}
-                className="text-[11px] text-white/85 text-center leading-relaxed px-2 drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]"
+                className="text-[11px] text-white/85 text-center leading-relaxed px-10 pb-4 drop-shadow-[0_1px_4px_rgba(0,0,0,0.7)]"
               >
                 By continuing you agree to our{' '}
                 <button

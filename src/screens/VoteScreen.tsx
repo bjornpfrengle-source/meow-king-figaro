@@ -430,9 +430,15 @@ export function VoteScreen() {
 
         {/* VS Badge */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none">
-          <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center font-black text-xl text-neutral-900 shadow-2xl border-4 border-neutral-900 transform -rotate-12">
+          <motion.div
+            key={currentPair ? `vs-${currentPair.cat1.id}-${currentPair.cat2.id}` : 'vs'}
+            initial={{ scale: 0, rotate: -200 }}
+            animate={{ scale: 1, rotate: -12 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 18 }}
+            className="w-12 h-12 bg-white rounded-full flex items-center justify-center font-black text-xl text-neutral-900 shadow-2xl border-4 border-neutral-900"
+          >
             VS
-          </div>
+          </motion.div>
         </div>
 
         {/* Voted Animation Overlay */}

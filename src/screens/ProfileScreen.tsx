@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Settings, Award, Plus, Video, ToggleRight, ToggleLeft, Trophy, Grid, Loader2, ShieldCheck, ShieldAlert, CalendarClock, Star, Trash2 } from 'lucide-react';
+import { Settings, Award, Plus, Video, ToggleRight, ToggleLeft, Trophy, Grid, Loader2, ShieldCheck, ShieldAlert, CalendarClock, Star, Trash2, MessageCircle } from 'lucide-react';
+import { CommentsSheet } from '../components/CommentsSheet';
 import { DIGITAL_REWARDS } from '../components/rewards';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, where, orderBy, getDocs, doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
@@ -40,6 +41,7 @@ export function ProfileScreen() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [activeCommentCatId, setActiveCommentCatId] = useState<string | null>(null);
 
   const performDelete = async () => {
     if (!confirmDelete) return;
@@ -342,14 +344,25 @@ export function ProfileScreen() {
                     />
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex flex-col justify-end p-3">
-                    <div className="flex items-center gap-1 text-white mb-1">
-                      <Video className="w-3 h-3" />
-                      <span className="text-[10px] font-bold flex items-center gap-1">
-                        {cat.name}
-                        {cat.isVerified && <ShieldCheck className="w-3 h-3 text-blue-400" />}
-                      </span>
+                    <div className="flex items-end justify-between">
+                      <div>
+                        <div className="flex items-center gap-1 text-white mb-1">
+                          <Video className="w-3 h-3" />
+                          <span className="text-[10px] font-bold flex items-center gap-1">
+                            {cat.name}
+                            {cat.isVerified && <ShieldCheck className="w-3 h-3 text-blue-400" />}
+                          </span>
+                        </div>
+                        <p className="text-white font-black text-sm">{cat.score} Votes</p>
+                      </div>
+                      <button
+                        onClick={() => setActiveCommentCatId(cat.id)}
+                        className="p-2 bg-black/40 backdrop-blur-md rounded-full border border-white/30 active:scale-95 transition-transform"
+                        aria-label="View comments"
+                      >
+                        <MessageCircle className="w-4 h-4 text-white fill-white" />
+                      </button>
                     </div>
-                    <p className="text-white font-black text-sm">{cat.score} Votes</p>
                   </div>
                   <button
                     onClick={() => setConfirmDelete({ id: cat.id, name: cat.name })}
@@ -409,6 +422,12 @@ export function ProfileScreen() {
         userProfile={userProfile as any}
         currentUser={user}
         onUpdate={() => {}}
+      />
+
+      <CommentsSheet
+        isOpen={!!activeCommentCatId}
+        catId={activeCommentCatId}
+        onClose={() => setActiveCommentCatId(null)}
       />
 
       {/* Delete confirmation (in-app, not a native dialog) */}
