@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Clock, Play, ChevronRight, Sparkles, Gift, Bell, TrendingUp, MessageCircle, Share2, Plus, Star, Flame, PawPrint, Loader2, Flag, ShieldCheck, Maximize2 } from 'lucide-react';
+import { Clock, Play, ChevronRight, Sparkles, Gift, Bell, TrendingUp, MessageCircle, Share2, Plus, Star, Flame, PawPrint, Loader2, Flag, ShieldCheck, Maximize2, Heart } from 'lucide-react';
 import { CommentsSheet } from '../components/CommentsSheet';
 import { useThemes, Countdown } from '../components/themes';
 import { useNavigate } from 'react-router-dom';
@@ -19,6 +19,29 @@ interface Cat {
   isVerified?: boolean;
   trimStart?: number;
   trimEnd?: number;
+}
+
+interface KingdomCat {
+  id: string;
+  name: string;
+  videoUrl: string;
+  score: number;
+  ownerId: string;
+  ownerName: string;
+  ownerHandle: string;
+  ownerImg?: string;
+  trimStart?: number;
+}
+
+function seededShuffle<T>(arr: T[], seed: number): T[] {
+  const result = [...arr];
+  let s = seed;
+  for (let i = result.length - 1; i > 0; i--) {
+    s = (s * 1664525 + 1013904223) & 0xffffffff;
+    const j = Math.abs(s) % (i + 1);
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
 }
 
 import { useFirebase } from '../components/FirebaseProvider';
@@ -45,6 +68,8 @@ export function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [reportTarget, setReportTarget] = useState<{ id: string; name: string } | null>(null);
   const [activeCommentCatId, setActiveCommentCatId] = useState<string | null>(null);
+  const [kingdomCats, setKingdomCats] = useState<KingdomCat[]>([]);
+  const [kingdomLikes, setKingdomLikes] = useState<Record<string, boolean>>({});
 
   // Ticks the counter up over time so it feels live (starts from the base,
   // which is already the initial state — no flash of 0).
@@ -120,6 +145,41 @@ export function HomeScreen() {
       unsubscribeTopCats();
       unsubscribeTotal();
     };
+  }, []);
+
+  useEffect(() => {
+    const fetchKingdom = async () => {
+      try {
+        const snap = await getDocs(query(collection(db, 'cats'), orderBy('score', 'desc'), limit(25)));
+        const cats = snap.docs
+          .map(d => ({ id: d.id, ...(d.data() as any) }))
+          .filter((c: any) => !!c.videoUrl);
+
+        const dayIndex = Math.floor(Date.now() / 86400000);
+        const featured = seededShuffle(cats, dayIndex).slice(0, 10);
+
+        const withOwners = await Promise.all(featured.map(async (cat: any) => {
+          let ownerName = 'Cat Owner';
+          let ownerHandle = '';
+          let ownerImg: string | undefined;
+          try {
+            const uDoc = await getDoc(doc(db, 'users', cat.ownerId));
+            if (uDoc.exists()) {
+              const u = uDoc.data() as any;
+              ownerName = u.displayName || 'Cat Owner';
+              ownerHandle = u.socialHandle || u.email?.split('@')[0] || '';
+              ownerImg = u.photoURL;
+            }
+          } catch (_) {}
+          return { ...cat, ownerName, ownerHandle, ownerImg } as KingdomCat;
+        }));
+
+        setKingdomCats(withOwners);
+      } catch (e) {
+        console.error('Error fetching Kitty Kingdom:', e);
+      }
+    };
+    fetchKingdom();
   }, []);
 
   const trendingCat = topCats.length > 0 ? topCats[0] : null;
@@ -255,6 +315,75 @@ export function HomeScreen() {
           </div>
           <TrendingUp className="w-5 h-5 text-teal-500" />
         </div>
+
+        {/* ⭐ Kitty Kingdom */}
+        {kingdomCats.length > 0 && (
+          <div className="mb-8">
+            <div className="flex justify-between items-end mb-3">
+              <div>
+                <h3 className="text-2xl font-black text-neutral-800 flex items-center gap-2">
+                  <Star className="w-6 h-6 text-amber-400 fill-amber-400" />
+                  Kitty Kingdom
+                </h3>
+                <p className="text-xs font-bold text-neutral-400 mt-0.5">Today's featured cats · refreshes daily</p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 overflow-x-auto pb-3 -mx-6 px-6 [&::-webkit-scrollbar]:hidden snap-x snap-mandatory">
+              {kingdomCats.map((cat, i) => (
+                <motion.div
+                  key={cat.id}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.04 }}
+                  onClick={() => navigate(`/profile/${cat.ownerId}`)}
+                  className="relative w-32 h-48 rounded-2xl overflow-hidden flex-shrink-0 snap-start cursor-pointer shadow-lg bg-black"
+                  style={{ border: '2px solid', borderColor: 'rgb(251 191 36 / 0.6)' }}
+                >
+                  <video
+                    src={cat.videoUrl}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    autoPlay loop muted playsInline
+                    onLoadedMetadata={(e) => { if (cat.trimStart) e.currentTarget.currentTime = cat.trimStart; }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/25" />
+
+                  {/* Featured badge */}
+                  <div className="absolute top-2 left-2 bg-amber-400 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-sm">
+                    <Star className="w-2.5 h-2.5 fill-white" /> Featured
+                  </div>
+
+                  {/* Heart */}
+                  <motion.button
+                    whileTap={{ scale: 0.75 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setKingdomLikes(prev => ({ ...prev, [cat.id]: !prev[cat.id] }));
+                    }}
+                    className="absolute top-2 right-2 w-7 h-7 bg-black/30 backdrop-blur-sm rounded-full flex items-center justify-center"
+                  >
+                    <Heart className={`w-3.5 h-3.5 transition-colors ${kingdomLikes[cat.id] ? 'text-pink-500 fill-pink-500' : 'text-white'}`} />
+                  </motion.button>
+
+                  {/* Owner avatar */}
+                  {cat.ownerImg && (
+                    <div className="absolute bottom-11 left-2.5">
+                      <img src={cat.ownerImg} alt="" className="w-6 h-6 rounded-full border-2 border-white object-cover" referrerPolicy="no-referrer" />
+                    </div>
+                  )}
+
+                  {/* Name + handle */}
+                  <div className="absolute bottom-0 left-0 right-0 px-2.5 pb-2.5">
+                    <p className="text-white font-black text-xs truncate leading-tight">{cat.name}</p>
+                    {cat.ownerHandle && (
+                      <p className="text-white/65 text-[10px] font-bold truncate">@{cat.ownerHandle}</p>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Recent Winners */}
         <div className="mb-8">

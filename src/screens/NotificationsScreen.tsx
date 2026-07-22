@@ -70,16 +70,22 @@ export function NotificationsScreen() {
       }
 
       if (user) {
-        // 2) Recently ended theme results (last 7 days)
-        const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
-        const recentlyEnded = themes.filter(t => t.endMs < now && t.endMs > sevenDaysAgo);
+        // 2) Recently ended theme results (last 30 days)
+        const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+        const recentlyEnded = themes.filter(t => t.endMs > 0 && t.endMs < now && t.endMs > thirtyDaysAgo);
+
+        // Fetch all user's cats once — avoids composite index requirement
+        const allUserCatsSnap = await getDocs(
+          query(collection(db, 'cats'), where('ownerId', '==', user.uid))
+        ).catch(() => null);
+        const allUserCats = allUserCatsSnap?.docs.map(d => ({ id: d.id, ...(d.data() as any) })) ?? [];
 
         for (const theme of recentlyEnded) {
           try {
-            const userCatsSnap = await getDocs(
-              query(collection(db, 'cats'), where('ownerId', '==', user.uid), where('theme', '==', theme.slug))
-            );
-            if (userCatsSnap.empty) continue;
+            const userThemeCats = allUserCats.filter(c => c.theme === theme.slug);
+            if (userThemeCats.length === 0) continue;
+
+            const userCatDocs = userThemeCats;
 
             const allCatsSnap = await getDocs(
               query(collection(db, 'cats'), where('theme', '==', theme.slug))
@@ -92,11 +98,10 @@ export function NotificationsScreen() {
             const daysAgo = Math.round((now - theme.endMs) / (24 * 60 * 60 * 1000));
             const timeStr = daysAgo === 0 ? 'Just ended' : `${daysAgo}d ago`;
 
-            userCatsSnap.forEach(d => {
-              const myCat = { id: d.id, ...(d.data() as any) };
-              const rank = allCats.findIndex(c => c.id === d.id) + 1;
+            for (const myCat of userCatDocs) {
+              const rank = allCats.findIndex(c => c.id === myCat.id) + 1;
               const votes = myCat.score || 0;
-              const isWinner = rank === 1 && total > 1;
+              const isWinner = rank === 1;
 
               if (isWinner && myCat.videoUrl) {
                 const cd: CelebrationData = {
@@ -106,7 +111,7 @@ export function NotificationsScreen() {
                   votes,
                 };
                 list.unshift({
-                  id: `winner-${theme.id}-${d.id}`,
+                  id: `winner-${theme.id}-${myCat.id}`,
                   kind: 'winner',
                   title: `👑 ${myCat.name || 'Your cat'} WON "${theme.title}"!`,
                   message: `Tap to celebrate your Meow King moment 🏆`,
@@ -116,14 +121,14 @@ export function NotificationsScreen() {
                 });
               } else {
                 list.push({
-                  id: `result-${theme.id}-${d.id}`,
+                  id: `result-${theme.id}-${myCat.id}`,
                   kind: 'result',
                   title: `Results: "${theme.title}"`,
                   message: catLingoResult(rank, total, myCat.name || 'Your cat', votes, theme.title),
                   time: timeStr,
                 });
               }
-            });
+            }
           } catch (e) {
             console.error('Error loading theme results:', e);
           }

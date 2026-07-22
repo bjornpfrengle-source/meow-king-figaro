@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Medal, Crown, Loader2, Flag, MessageCircle, Send, ChevronRight } from 'lucide-react';
+import { Medal, Crown, Loader2, Flag, MessageCircle, Send, ChevronRight, Trophy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, getDocs, getDoc, doc, onSnapshot, orderBy, limit, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, getDocs, getDoc, doc, onSnapshot, orderBy, limit, addDoc, serverTimestamp, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
 import { useThemes } from '../components/themes';
@@ -42,7 +42,7 @@ type Tab = 'daily' | 'weekly' | 'alltime';
 export function LeaderboardScreen() {
   const navigate = useNavigate();
   const { user, userProfile } = useFirebase();
-  const { active } = useThemes();
+  const { active, themes } = useThemes();
   const [allCats, setAllCats] = useState<any[]>([]);
   const [leaders, setLeaders] = useState<Leader[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,6 +51,7 @@ export function LeaderboardScreen() {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMsg, setNewMsg] = useState('');
   const [sending, setSending] = useState(false);
+  const [pastResults, setPastResults] = useState<Array<{ theme: any; winner: Leader; entrants: number }>>([]);
 
   // Fetch every real (video) entry once; tabs filter it client-side.
   useEffect(() => {
@@ -115,6 +116,59 @@ export function LeaderboardScreen() {
     };
     build();
   }, [tab, allCats, active, user]);
+
+  // Past theme results
+  useEffect(() => {
+    if (!user || themes.length === 0) return;
+    const buildPast = async () => {
+      const now = Date.now();
+      const ended = themes
+        .filter(t => t.endMs > 0 && t.endMs < now)
+        .sort((a, b) => b.endMs - a.endMs)
+        .slice(0, 8);
+
+      const results: Array<{ theme: any; winner: Leader; entrants: number }> = [];
+      for (const theme of ended) {
+        try {
+          const snap = await getDocs(query(collection(db, 'cats'), where('theme', '==', theme.slug)));
+          const cats = snap.docs
+            .map(d => ({ id: d.id, ...(d.data() as any) }))
+            .filter((c: any) => !!c.videoUrl)
+            .sort((a: any, b: any) => (b.score || 0) - (a.score || 0));
+          if (cats.length === 0) continue;
+
+          const top: any = cats[0];
+          let ownerName = 'Anonymous';
+          let img = top.thumbnailUrl || top.catThumbnailUrl || '';
+          if (top.ownerId) {
+            try {
+              const ud = await getDoc(doc(db, 'users', top.ownerId));
+              if (ud.exists()) {
+                const d = ud.data();
+                ownerName = d.displayName || 'Anonymous';
+                if (!img) img = d.catThumbnailUrl || '';
+              }
+            } catch {}
+          }
+          results.push({
+            theme,
+            entrants: cats.length,
+            winner: {
+              id: top.id,
+              rank: 1,
+              name: top.name || 'Unknown Cat',
+              owner: ownerName,
+              score: (top.score || 0).toString(),
+              img: img || '1514888286974-6c03e2ca1dba',
+              isRealImage: !!img,
+            },
+          });
+        } catch {}
+      }
+      setPastResults(results);
+    };
+    buildPast();
+  }, [user, themes]);
 
   // Community discussion feed (latest few messages, newest at bottom)
   useEffect(() => {
@@ -251,6 +305,51 @@ export function LeaderboardScreen() {
                 )}
               </motion.div>
             ))}
+          </div>
+        )}
+
+        {/* Past Results Board */}
+        {pastResults.length > 0 && (
+          <div className="mt-8">
+            <h2 className="font-black text-lg text-neutral-800 mb-3 flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-amber-500" /> Results Board
+            </h2>
+            <div className="space-y-2.5">
+              {pastResults.map(({ theme, winner, entrants }) => (
+                <motion.div
+                  key={theme.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white border border-pink-50 rounded-2xl p-3.5 flex items-center gap-3 shadow-sm"
+                >
+                  {/* winner avatar */}
+                  <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-amber-200 shrink-0">
+                    <img
+                      src={winner.isRealImage ? winner.img : `https://images.unsplash.com/photo-${winner.img}?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&q=80`}
+                      alt={winner.name}
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+
+                  {/* theme + winner info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-black text-neutral-400 uppercase tracking-wider truncate">{theme.title}</p>
+                    <p className="font-black text-neutral-800 text-sm truncate flex items-center gap-1">
+                      <Crown className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500 shrink-0" />
+                      {winner.name}
+                    </p>
+                    <p className="text-[11px] text-neutral-400 truncate">{winner.owner} · {entrants} entered</p>
+                  </div>
+
+                  {/* score */}
+                  <div className="text-right shrink-0">
+                    <p className="font-black text-pink-500">{parseInt(winner.score).toLocaleString()}</p>
+                    <p className="text-[10px] font-bold text-neutral-400 uppercase">Pts</p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           </div>
         )}
 
