@@ -24,13 +24,12 @@ interface Cat {
 interface KingdomCat {
   id: string;
   name: string;
-  videoUrl: string;
+  cry: string;
+  catImg?: string;
   score: number;
   ownerId: string;
-  ownerName: string;
   ownerHandle: string;
   ownerImg?: string;
-  trimStart?: number;
 }
 
 function seededShuffle<T>(arr: T[], seed: number): T[] {
@@ -159,19 +158,29 @@ export function HomeScreen() {
         const featured = seededShuffle(cats, dayIndex).slice(0, 10);
 
         const withOwners = await Promise.all(featured.map(async (cat: any) => {
-          let ownerName = 'Cat Owner';
           let ownerHandle = '';
           let ownerImg: string | undefined;
+          // Prefer the profile photo set during onboarding; fall back to video thumbnail
+          let catImg: string | undefined = cat.thumbnailUrl;
           try {
             const uDoc = await getDoc(doc(db, 'users', cat.ownerId));
             if (uDoc.exists()) {
               const u = uDoc.data() as any;
-              ownerName = u.displayName || 'Cat Owner';
               ownerHandle = u.socialHandle || u.email?.split('@')[0] || '';
               ownerImg = u.photoURL;
+              if (u.catThumbnailUrl) catImg = u.catThumbnailUrl;
             }
           } catch (_) {}
-          return { ...cat, ownerName, ownerHandle, ownerImg } as KingdomCat;
+          return {
+            id: cat.id,
+            name: cat.name || 'Unknown Cat',
+            cry: cat.cry || '',
+            catImg,
+            score: cat.score || 0,
+            ownerId: cat.ownerId,
+            ownerHandle,
+            ownerImg,
+          } as KingdomCat;
         }));
 
         setKingdomCats(withOwners);
@@ -337,47 +346,59 @@ export function HomeScreen() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.04 }}
                   onClick={() => navigate(`/profile/${cat.ownerId}`)}
-                  className="relative w-32 h-48 rounded-2xl overflow-hidden flex-shrink-0 snap-start cursor-pointer shadow-lg bg-black"
-                  style={{ border: '2px solid', borderColor: 'rgb(251 191 36 / 0.6)' }}
+                  className="w-40 flex-shrink-0 snap-start cursor-pointer rounded-3xl overflow-hidden shadow-md bg-white flex flex-col active:scale-[0.97] transition-transform"
+                  style={{ border: '2px solid rgb(251 191 36 / 0.5)' }}
                 >
-                  <video
-                    src={cat.videoUrl}
-                    className="absolute inset-0 w-full h-full object-cover"
-                    autoPlay loop muted playsInline
-                    onLoadedMetadata={(e) => { if (cat.trimStart) e.currentTarget.currentTime = cat.trimStart; }}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/25" />
+                  {/* Cat avatar photo — top section */}
+                  <div className="relative h-44 bg-neutral-100 flex-shrink-0">
+                    {cat.catImg ? (
+                      <img
+                        src={cat.catImg}
+                        alt={cat.name}
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-5xl">🐱</div>
+                    )}
 
-                  {/* Featured badge */}
-                  <div className="absolute top-2 left-2 bg-amber-400 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-sm">
-                    <Star className="w-2.5 h-2.5 fill-white" /> Featured
+                    {/* Featured badge */}
+                    <div className="absolute top-2 left-2 bg-amber-400 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-sm">
+                      <Star className="w-2.5 h-2.5 fill-white" /> Featured
+                    </div>
+
+                    {/* Heart */}
+                    <motion.button
+                      whileTap={{ scale: 0.75 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setKingdomLikes(prev => ({ ...prev, [cat.id]: !prev[cat.id] }));
+                      }}
+                      className="absolute top-2 right-2 w-7 h-7 bg-black/20 backdrop-blur-sm rounded-full flex items-center justify-center"
+                    >
+                      <Heart className={`w-3.5 h-3.5 transition-colors ${kingdomLikes[cat.id] ? 'text-pink-500 fill-pink-500' : 'text-white'}`} />
+                    </motion.button>
                   </div>
 
-                  {/* Heart */}
-                  <motion.button
-                    whileTap={{ scale: 0.75 }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setKingdomLikes(prev => ({ ...prev, [cat.id]: !prev[cat.id] }));
-                    }}
-                    className="absolute top-2 right-2 w-7 h-7 bg-black/30 backdrop-blur-sm rounded-full flex items-center justify-center"
-                  >
-                    <Heart className={`w-3.5 h-3.5 transition-colors ${kingdomLikes[cat.id] ? 'text-pink-500 fill-pink-500' : 'text-white'}`} />
-                  </motion.button>
-
-                  {/* Owner avatar */}
-                  {cat.ownerImg && (
-                    <div className="absolute bottom-11 left-2.5">
-                      <img src={cat.ownerImg} alt="" className="w-6 h-6 rounded-full border-2 border-white object-cover" referrerPolicy="no-referrer" />
-                    </div>
-                  )}
-
-                  {/* Name + handle */}
-                  <div className="absolute bottom-0 left-0 right-0 px-2.5 pb-2.5">
-                    <p className="text-white font-black text-xs truncate leading-tight">{cat.name}</p>
-                    {cat.ownerHandle && (
-                      <p className="text-white/65 text-[10px] font-bold truncate">@{cat.ownerHandle}</p>
+                  {/* Profile info — bottom section */}
+                  <div className="px-3 pt-2.5 pb-3 flex flex-col gap-0.5 bg-white">
+                    <p className="font-black text-neutral-800 text-sm truncate">{cat.name}</p>
+                    {cat.cry && (
+                      <p className="text-[10px] text-neutral-400 italic leading-snug line-clamp-2">"{cat.cry}"</p>
                     )}
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      {cat.ownerImg && (
+                        <img
+                          src={cat.ownerImg}
+                          alt=""
+                          className="w-5 h-5 rounded-full border border-amber-200 object-cover flex-shrink-0"
+                          referrerPolicy="no-referrer"
+                        />
+                      )}
+                      {cat.ownerHandle && (
+                        <p className="text-[10px] font-bold text-amber-500 truncate">@{cat.ownerHandle}</p>
+                      )}
+                    </div>
                   </div>
                 </motion.div>
               ))}
