@@ -357,70 +357,71 @@ export function HomeScreen() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.04 }}
                   onClick={() => navigate(`/user/${cat.ownerId}`)}
-                  className="w-72 h-44 flex-shrink-0 snap-start cursor-pointer rounded-3xl overflow-hidden shadow-md bg-white flex flex-row active:scale-[0.97] transition-transform"
-                  style={{ border: '2px solid rgb(251 191 36 / 0.45)' }}
+                  className="min-w-[90%] h-[280px] flex-shrink-0 snap-start cursor-pointer rounded-3xl overflow-hidden shadow-md relative active:scale-[0.98] transition-transform"
                 >
-                  {/* LEFT: cat photo(s) — stacked if two cats */}
-                  <div className="w-28 h-full flex-shrink-0 flex flex-col bg-neutral-100">
-                    <div className={`relative overflow-hidden ${cat.catImg2 ? 'flex-1 border-b-2 border-white' : 'h-full'}`}>
-                      {cat.catImg ? (
-                        <img src={cat.catImg} alt={cat.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-4xl">🐱</div>
-                      )}
-                      {/* Featured badge on top-left of first cat */}
-                      <div className="absolute top-1.5 left-1.5 bg-amber-400 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
-                        <Star className="w-2 h-2 fill-white" /> Featured
-                      </div>
-                    </div>
-                    {cat.catImg2 && (
-                      <div className="flex-1 overflow-hidden relative">
-                        <img src={cat.catImg2} alt={cat.catName2 || ''} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                      </div>
+                  {/* Card background gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-amber-50 via-pink-50 to-orange-50" />
+
+                  {/* TOP-LEFT quadrant: cat 1 photo */}
+                  <div className="absolute top-0 left-0 w-1/2 h-1/2 overflow-hidden rounded-br-3xl">
+                    {cat.catImg ? (
+                      <img src={cat.catImg} alt={cat.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-5xl bg-amber-100">🐱</div>
                     )}
                   </div>
 
-                  {/* RIGHT: owner + cat info */}
-                  <div className="flex-1 flex flex-col justify-between p-3 min-w-0">
-                    {/* Owner row */}
-                    <div className="flex items-center gap-2">
-                      {cat.ownerImg ? (
-                        <img src={cat.ownerImg} alt="" className="w-10 h-10 rounded-full border-2 border-amber-200 object-cover flex-shrink-0" referrerPolicy="no-referrer" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0 text-lg">😺</div>
-                      )}
-                      <div className="min-w-0">
-                        {cat.ownerName && <p className="font-black text-neutral-800 text-xs truncate leading-tight">{cat.ownerName}</p>}
-                        {cat.ownerHandle && <p className="text-[11px] font-bold text-amber-500 truncate">@{cat.ownerHandle}</p>}
-                      </div>
-                    </div>
-
-                    {/* Cat names */}
-                    <div className="min-w-0">
-                      <p className="font-black text-neutral-800 text-sm truncate">{cat.name}</p>
-                      {cat.catName2 && (
-                        <p className="text-xs font-bold text-neutral-500 truncate">{cat.catName2}</p>
-                      )}
-                    </div>
-
-                    {/* Battle cry */}
-                    {cat.cry && (
-                      <p className="text-[11px] text-neutral-400 italic leading-snug line-clamp-2">"{cat.cry}"</p>
+                  {/* BOTTOM-RIGHT quadrant: cat 2 photo */}
+                  <div className="absolute bottom-0 right-0 w-1/2 h-1/2 overflow-hidden rounded-tl-3xl">
+                    {cat.catImg2 ? (
+                      <img src={cat.catImg2} alt={cat.catName2 || ''} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-5xl bg-pink-100">🐾</div>
                     )}
+                  </div>
 
-                    {/* Heart */}
-                    <div className="flex justify-end">
-                      <motion.button
-                        whileTap={{ scale: 0.75 }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setKingdomLikes(prev => ({ ...prev, [cat.id]: !prev[cat.id] }));
-                        }}
-                        className="w-8 h-8 bg-pink-50 rounded-full flex items-center justify-center"
-                      >
-                        <Heart className={`w-4 h-4 transition-colors ${kingdomLikes[cat.id] ? 'text-pink-500 fill-pink-500' : 'text-neutral-300'}`} />
-                      </motion.button>
-                    </div>
+                  {/* TOP-RIGHT: cat 1 name */}
+                  <div className="absolute top-0 right-0 w-1/2 h-1/2 flex flex-col items-end justify-start p-3.5">
+                    <p className="font-black text-neutral-800 text-base leading-tight text-right drop-shadow-sm">{cat.name}</p>
+                    {cat.cry && (
+                      <p className="text-[10px] text-neutral-500 italic leading-snug text-right mt-1 line-clamp-2">"{cat.cry}"</p>
+                    )}
+                  </div>
+
+                  {/* BOTTOM-LEFT: cat 2 name */}
+                  <div className="absolute bottom-0 left-0 w-1/2 h-1/2 flex flex-col items-start justify-end p-3.5">
+                    {cat.catName2 ? (
+                      <p className="font-black text-neutral-800 text-base leading-tight drop-shadow-sm">{cat.catName2}</p>
+                    ) : (
+                      <p className="text-[10px] text-neutral-400 italic">No 2nd cat yet</p>
+                    )}
+                  </div>
+
+                  {/* CENTER: user avatar + handle + heart */}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1">
+                    {cat.ownerImg ? (
+                      <img src={cat.ownerImg} alt="" className="w-14 h-14 rounded-full border-4 border-white shadow-xl object-cover" referrerPolicy="no-referrer" />
+                    ) : (
+                      <div className="w-14 h-14 rounded-full border-4 border-white shadow-xl bg-amber-200 flex items-center justify-center text-2xl">😺</div>
+                    )}
+                    {cat.ownerHandle && (
+                      <span className="text-[10px] font-black text-amber-600 bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded-full shadow-sm">@{cat.ownerHandle}</span>
+                    )}
+                    <motion.button
+                      whileTap={{ scale: 0.75 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setKingdomLikes(prev => ({ ...prev, [cat.id]: !prev[cat.id] }));
+                      }}
+                      className="w-8 h-8 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm mt-0.5"
+                    >
+                      <Heart className={`w-4 h-4 transition-colors ${kingdomLikes[cat.id] ? 'text-pink-500 fill-pink-500' : 'text-neutral-400'}`} />
+                    </motion.button>
+                  </div>
+
+                  {/* Featured badge */}
+                  <div className="absolute top-3 left-3 bg-amber-400 text-white text-[9px] font-black px-2 py-0.5 rounded-full flex items-center gap-0.5 shadow-sm z-10">
+                    <Star className="w-2.5 h-2.5 fill-white" /> Featured
                   </div>
                 </motion.div>
               ))}
