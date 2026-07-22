@@ -345,7 +345,7 @@ export function HomeScreen() {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.04 }}
-                  onClick={() => navigate(`/profile/${cat.ownerId}`)}
+                  onClick={() => navigate(`/user/${cat.ownerId}`)}
                   className="w-40 flex-shrink-0 snap-start cursor-pointer rounded-3xl overflow-hidden shadow-md bg-white flex flex-col active:scale-[0.97] transition-transform"
                   style={{ border: '2px solid rgb(251 191 36 / 0.5)' }}
                 >
