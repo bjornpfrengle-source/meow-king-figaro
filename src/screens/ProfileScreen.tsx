@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Settings, Award, Plus, Video, ToggleRight, ToggleLeft, Trophy, Grid, Loader2, ShieldCheck, ShieldAlert, CalendarClock, Star, Trash2, MessageCircle } from 'lucide-react';
+import { Settings, Award, Plus, Video, ToggleRight, ToggleLeft, Trophy, Grid, Loader2, ShieldCheck, ShieldAlert, CalendarClock, Star, Trash2, MessageCircle, Pencil, Check, X } from 'lucide-react';
 import { CommentsSheet } from '../components/CommentsSheet';
 import { DIGITAL_REWARDS } from '../components/rewards';
 import { useNavigate } from 'react-router-dom';
@@ -42,6 +42,10 @@ export function ProfileScreen() {
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [activeCommentCatId, setActiveCommentCatId] = useState<string | null>(null);
+  const [isBioEditing, setIsBioEditing] = useState(false);
+  const [bioText, setBioText] = useState('');
+  const [bioSaving, setBioSaving] = useState(false);
+  const BIO_LIMIT = 160;
 
   const performDelete = async () => {
     if (!confirmDelete) return;
@@ -55,6 +59,23 @@ export function ProfileScreen() {
     } finally {
       setDeleting(false);
       setConfirmDelete(null);
+    }
+  };
+
+  useEffect(() => {
+    if (userProfile?.bio !== undefined) setBioText(userProfile.bio);
+  }, [userProfile?.bio]);
+
+  const saveBio = async () => {
+    if (!user) return;
+    setBioSaving(true);
+    try {
+      await updateDoc(doc(db, 'users', user.uid), { bio: bioText.trim() });
+      setIsBioEditing(false);
+    } catch (e) {
+      console.error('Error saving bio:', e);
+    } finally {
+      setBioSaving(false);
     }
   };
 
@@ -198,6 +219,56 @@ export function ProfileScreen() {
             ) : (
               <p className="text-sm font-bold text-pink-500">@{user?.email?.split('@')[0] || 'guest'}</p>
             )}
+
+            {/* Bio */}
+            <div className="w-full mt-4">
+              {isBioEditing ? (
+                <div className="w-full bg-white border-2 border-pink-200 rounded-2xl p-3 shadow-sm">
+                  <textarea
+                    value={bioText}
+                    onChange={(e) => setBioText(e.target.value.slice(0, BIO_LIMIT))}
+                    placeholder="Tell everyone about your cats… 🐾"
+                    className="w-full text-sm text-neutral-700 placeholder:text-neutral-400 resize-none outline-none leading-relaxed"
+                    rows={3}
+                    autoFocus
+                  />
+                  <div className="flex items-center justify-between mt-2">
+                    <span className={`text-[10px] font-bold ${bioText.length >= BIO_LIMIT ? 'text-red-400' : 'text-neutral-400'}`}>
+                      {BIO_LIMIT - bioText.length} left
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => { setIsBioEditing(false); setBioText(userProfile?.bio || ''); }}
+                        className="p-1.5 bg-neutral-100 rounded-full active:scale-95 transition-transform"
+                      >
+                        <X className="w-4 h-4 text-neutral-500" />
+                      </button>
+                      <button
+                        onClick={saveBio}
+                        disabled={bioSaving}
+                        className="p-1.5 bg-pink-500 rounded-full active:scale-95 transition-transform disabled:opacity-60"
+                      >
+                        <Check className="w-4 h-4 text-white" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setIsBioEditing(true)}
+                  className="w-full flex items-start gap-2 group"
+                >
+                  <div className="flex-1 text-left">
+                    {userProfile?.bio ? (
+                      <p className="text-sm text-neutral-600 leading-relaxed">{userProfile.bio}</p>
+                    ) : (
+                      <p className="text-sm text-neutral-400 italic">Add a bio — tell the world about your cats 🐾</p>
+                    )}
+                  </div>
+                  <Pencil className="w-4 h-4 text-neutral-300 group-active:text-pink-400 flex-shrink-0 mt-0.5 transition-colors" />
+                </button>
+              )}
+            </div>
 
             {/* Cat Names */}
             {(userProfile?.catName || userProfile?.catName2) && (

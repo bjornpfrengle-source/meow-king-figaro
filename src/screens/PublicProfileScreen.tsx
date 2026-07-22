@@ -130,6 +130,11 @@ export function PublicProfileScreen() {
             <h2 className="text-2xl font-black text-neutral-800">{profile.displayName || 'Anonymous Cat'}</h2>
             {profile.socialHandle && <p className="text-sm font-bold text-pink-500">@{profile.socialHandle}</p>}
 
+            {/* Bio */}
+            {profile.bio && (
+              <p className="text-sm text-neutral-600 leading-relaxed text-center mt-3 max-w-[280px]">{profile.bio}</p>
+            )}
+
             {/* Stats */}
             <div className="flex gap-6 mt-5 bg-white px-6 py-4 rounded-3xl shadow-sm border border-pink-50 w-full justify-between">
               <div className="text-center flex-1">
