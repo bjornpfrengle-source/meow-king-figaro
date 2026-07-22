@@ -349,7 +349,7 @@ export function HomeScreen() {
               </div>
             </div>
 
-            <div className="flex gap-4 overflow-x-auto pb-3 -mx-6 px-6 [&::-webkit-scrollbar]:hidden snap-x snap-mandatory">
+            <div className="flex gap-4 overflow-x-auto pb-4 -mx-6 px-6 [&::-webkit-scrollbar]:hidden snap-x snap-mandatory scroll-pl-6">
               {kingdomCats.map((cat, i) => (
                 <motion.div
                   key={cat.id}
@@ -357,74 +357,87 @@ export function HomeScreen() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.04 }}
                   onClick={() => navigate(`/user/${cat.ownerId}`)}
-                  className="min-w-[90%] h-[280px] flex-shrink-0 snap-start cursor-pointer rounded-3xl overflow-hidden shadow-md relative active:scale-[0.98] transition-transform"
+                  className="min-w-[calc(100%-32px)] h-[290px] flex-shrink-0 snap-start cursor-pointer rounded-[2rem] overflow-hidden shadow-2xl relative active:scale-[0.985] transition-transform"
+                  style={{ boxShadow: '0 20px 60px -12px rgba(0,0,0,0.45), 0 0 0 1.5px rgba(251,191,36,0.35)' }}
                 >
-                  {/* Card background gradient */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-amber-50 via-pink-50 to-orange-50" />
+                  {/* Dark luxury background */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-900" />
+                  {/* Subtle gold shimmer overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-amber-400/8 via-transparent to-amber-600/5" />
 
                   {/* TOP-LEFT quadrant: cat 1 photo */}
-                  <div className="absolute top-0 left-0 w-1/2 h-1/2 overflow-hidden rounded-br-3xl">
+                  <div className="absolute top-0 left-0 w-[48%] h-[50%] overflow-hidden" style={{ borderBottomRightRadius: '2rem' }}>
                     {cat.catImg ? (
                       <img src={cat.catImg} alt={cat.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-5xl bg-amber-100">🐱</div>
+                      <div className="w-full h-full flex items-center justify-center text-5xl bg-neutral-700">🐱</div>
                     )}
+                    {/* Inner corner gold accent */}
+                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-amber-400/50 rounded-br-none" style={{ borderBottomRightRadius: '2rem' }} />
                   </div>
 
                   {/* BOTTOM-RIGHT quadrant: cat 2 photo */}
-                  <div className="absolute bottom-0 right-0 w-1/2 h-1/2 overflow-hidden rounded-tl-3xl">
+                  <div className="absolute bottom-0 right-0 w-[48%] h-[50%] overflow-hidden" style={{ borderTopLeftRadius: '2rem' }}>
                     {cat.catImg2 ? (
                       <img src={cat.catImg2} alt={cat.catName2 || ''} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-5xl bg-pink-100">🐾</div>
+                      <div className="w-full h-full flex items-center justify-center bg-neutral-700/80">
+                        <span className="text-neutral-500 text-[10px] font-bold italic">Add cat 2</span>
+                      </div>
                     )}
+                    {/* Inner corner gold accent */}
+                    <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-amber-400/50" style={{ borderTopLeftRadius: '2rem' }} />
                   </div>
 
-                  {/* TOP-RIGHT: cat 1 name */}
-                  <div className="absolute top-0 right-0 w-1/2 h-1/2 flex flex-col items-end justify-start p-3.5">
-                    <p className="font-black text-neutral-800 text-base leading-tight text-right drop-shadow-sm">{cat.name}</p>
+                  {/* TOP-RIGHT: cat 1 name + cry */}
+                  <div className="absolute top-0 right-0 w-[52%] h-[50%] flex flex-col items-end justify-start pt-4 pr-4 pl-6">
+                    <p className="font-black text-white text-lg leading-tight text-right tracking-tight">{cat.name}</p>
                     {cat.cry && (
-                      <p className="text-[10px] text-neutral-500 italic leading-snug text-right mt-1 line-clamp-2">"{cat.cry}"</p>
+                      <p className="text-[10px] text-amber-300/80 italic leading-snug text-right mt-1.5 line-clamp-3">"{cat.cry}"</p>
                     )}
                   </div>
 
                   {/* BOTTOM-LEFT: cat 2 name */}
-                  <div className="absolute bottom-0 left-0 w-1/2 h-1/2 flex flex-col items-start justify-end p-3.5">
+                  <div className="absolute bottom-0 left-0 w-[52%] h-[50%] flex flex-col items-start justify-end pb-4 pl-4 pr-6">
                     {cat.catName2 ? (
-                      <p className="font-black text-neutral-800 text-base leading-tight drop-shadow-sm">{cat.catName2}</p>
+                      <p className="font-black text-white text-lg leading-tight tracking-tight">{cat.catName2}</p>
                     ) : (
-                      <p className="text-[10px] text-neutral-400 italic">No 2nd cat yet</p>
+                      <span className="text-neutral-600 text-[10px] font-bold italic">—</span>
                     )}
                   </div>
 
                   {/* CENTER: user avatar + handle + heart */}
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1">
-                    {cat.ownerImg ? (
-                      <img src={cat.ownerImg} alt="" className="w-14 h-14 rounded-full border-4 border-white shadow-xl object-cover" referrerPolicy="no-referrer" />
-                    ) : (
-                      <div className="w-14 h-14 rounded-full border-4 border-white shadow-xl bg-amber-200 flex items-center justify-center text-2xl">😺</div>
-                    )}
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1.5 z-10">
+                    <div className="p-[3px] rounded-full bg-gradient-to-br from-amber-300 to-amber-500 shadow-lg shadow-amber-500/30">
+                      {cat.ownerImg ? (
+                        <img src={cat.ownerImg} alt="" className="w-14 h-14 rounded-full border-[3px] border-neutral-900 object-cover" referrerPolicy="no-referrer" />
+                      ) : (
+                        <div className="w-14 h-14 rounded-full border-[3px] border-neutral-900 bg-neutral-700 flex items-center justify-center text-2xl">😺</div>
+                      )}
+                    </div>
                     {cat.ownerHandle && (
-                      <span className="text-[10px] font-black text-amber-600 bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded-full shadow-sm">@{cat.ownerHandle}</span>
+                      <span className="text-[10px] font-black text-amber-300 bg-black/60 backdrop-blur-sm px-2.5 py-0.5 rounded-full border border-amber-400/20">@{cat.ownerHandle}</span>
                     )}
                     <motion.button
-                      whileTap={{ scale: 0.75 }}
+                      whileTap={{ scale: 0.7 }}
                       onClick={(e) => {
                         e.stopPropagation();
                         setKingdomLikes(prev => ({ ...prev, [cat.id]: !prev[cat.id] }));
                       }}
-                      className="w-8 h-8 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm mt-0.5"
+                      className="w-8 h-8 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/10 shadow-sm"
                     >
-                      <Heart className={`w-4 h-4 transition-colors ${kingdomLikes[cat.id] ? 'text-pink-500 fill-pink-500' : 'text-neutral-400'}`} />
+                      <Heart className={`w-4 h-4 transition-colors ${kingdomLikes[cat.id] ? 'text-pink-400 fill-pink-400' : 'text-neutral-400'}`} />
                     </motion.button>
                   </div>
 
                   {/* Featured badge */}
-                  <div className="absolute top-3 left-3 bg-amber-400 text-white text-[9px] font-black px-2 py-0.5 rounded-full flex items-center gap-0.5 shadow-sm z-10">
-                    <Star className="w-2.5 h-2.5 fill-white" /> Featured
+                  <div className="absolute top-3 left-3 bg-amber-400 text-neutral-900 text-[9px] font-black px-2.5 py-1 rounded-full flex items-center gap-1 z-10 shadow-lg shadow-amber-500/30">
+                    <Star className="w-2.5 h-2.5 fill-neutral-900" /> Featured
                   </div>
                 </motion.div>
               ))}
+              {/* Right padding sentinel */}
+              <div className="w-2 flex-shrink-0" />
             </div>
           </div>
         )}
