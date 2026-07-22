@@ -51,7 +51,7 @@ export function LeaderboardScreen() {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMsg, setNewMsg] = useState('');
   const [sending, setSending] = useState(false);
-  const [pastResults, setPastResults] = useState<Array<{ theme: any; winner: Leader; entrants: number }>>([]);
+  const [pastResults, setPastResults] = useState<Array<{ theme: any; winner: Leader; ownerId: string; entrants: number }>>([]);
 
   // Fetch every real (video) entry once; tabs filter it client-side.
   useEffect(() => {
@@ -153,6 +153,7 @@ export function LeaderboardScreen() {
           results.push({
             theme,
             entrants: cats.length,
+            ownerId: top.ownerId || '',
             winner: {
               id: top.id,
               rank: 1,
@@ -315,12 +316,13 @@ export function LeaderboardScreen() {
               <Trophy className="w-5 h-5 text-amber-500" /> Results Board
             </h2>
             <div className="space-y-2.5">
-              {pastResults.map(({ theme, winner, entrants }) => (
+              {pastResults.map(({ theme, winner, entrants, ownerId }) => (
                 <motion.div
                   key={theme.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-white border border-pink-50 rounded-2xl p-3.5 flex items-center gap-3 shadow-sm"
+                  onClick={() => ownerId && navigate(`/user/${ownerId}`)}
+                  className={`bg-white border border-pink-50 rounded-2xl p-3.5 flex items-center gap-3 shadow-sm ${ownerId ? 'cursor-pointer active:scale-[0.98] transition-transform' : ''}`}
                 >
                   {/* winner avatar */}
                   <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-amber-200 shrink-0">
@@ -347,6 +349,7 @@ export function LeaderboardScreen() {
                     <p className="font-black text-pink-500">{parseInt(winner.score).toLocaleString()}</p>
                     <p className="text-[10px] font-bold text-neutral-400 uppercase">Pts</p>
                   </div>
+                  {ownerId && <ChevronRight className="w-4 h-4 text-neutral-300 shrink-0" />}
                 </motion.div>
               ))}
             </div>
