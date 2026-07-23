@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Clock, Play, ChevronRight, Sparkles, Gift, Bell, TrendingUp, MessageCircle, Share2, Plus, Star, Flame, PawPrint, Loader2, Flag, ShieldCheck, Maximize2, Heart } from 'lucide-react';
+import { Clock, Play, ChevronRight, Sparkles, Gift, Bell, TrendingUp, MessageCircle, Share2, Plus, Star, Flame, PawPrint, Loader2, Flag, ShieldCheck, Maximize2, Heart, Megaphone } from 'lucide-react';
 import { CommentsSheet } from '../components/CommentsSheet';
 import { useThemes, Countdown } from '../components/themes';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, orderBy, limit, getDocs, doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDocs, doc, getDoc, onSnapshot, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { ReportModal } from '../components/ReportModal';
 
@@ -75,6 +75,31 @@ export function HomeScreen() {
   const [kingdomCats, setKingdomCats] = useState<KingdomCat[]>([]);
   const [kingdomLikes, setKingdomLikes] = useState<Record<string, boolean>>({});
   const [kingdomVideo, setKingdomVideo] = useState<KingdomCat | null>(null);
+  const [announcement, setAnnouncement] = useState<{ id: string; title: string; body?: string; videoUrl?: string; ctaLabel?: string; ctaUrl?: string } | null>(null);
+
+  // Check for active announcements — show once per session per announcement
+  useEffect(() => {
+    const check = async () => {
+      try {
+        const snap = await getDocs(query(collection(db, 'announcements'), where('isActive', '==', true), limit(5)));
+        if (snap.empty) return;
+        // Pick the most recently created active announcement
+        const sorted = snap.docs.sort((a, b) => {
+          const aMs = a.data().createdAt?.toMillis?.() ?? 0;
+          const bMs = b.data().createdAt?.toMillis?.() ?? 0;
+          return bMs - aMs;
+        });
+        const d = sorted[0];
+        const seenKey = `announce_seen_${d.id}`;
+        if (sessionStorage.getItem(seenKey)) return;
+        sessionStorage.setItem(seenKey, '1');
+        setAnnouncement({ id: d.id, ...(d.data() as any) });
+      } catch (e) {
+        // no-op: announcements are optional
+      }
+    };
+    check();
+  }, []);
 
   // Ticks the counter up over time so it feels live (starts from the base,
   // which is already the initial state — no flash of 0).
@@ -341,6 +366,125 @@ export function HomeScreen() {
           <TrendingUp className="w-5 h-5 text-teal-500" />
         </div>
 
+        {/* Trending Mayhem */}
+        <div className="mb-8">
+          <h3 className="text-2xl font-black text-neutral-800 mb-4">Trending Mayhem</h3>
+
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="w-8 h-8 text-red-400 animate-spin" />
+            </div>
+          ) : trendingCat ? (
+            <div className="relative rounded-3xl overflow-hidden h-[280px] shadow-md">
+              <video
+                ref={trendingVideoRef}
+                src={trendingCat.videoUrl}
+                className="w-full h-full object-cover"
+                autoPlay loop muted playsInline
+                onLoadedMetadata={(e) => {
+                  if (trendingCat.trimStart) e.currentTarget.currentTime = trendingCat.trimStart;
+                }}
+                onTimeUpdate={(e) => {
+                  if (trendingCat.trimStart !== undefined && trendingCat.trimEnd !== undefined) {
+                    if (e.currentTarget.currentTime >= trendingCat.trimEnd || e.currentTarget.currentTime < trendingCat.trimStart) {
+                      e.currentTarget.currentTime = trendingCat.trimStart;
+                    }
+                  }
+                }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+
+              {/* Actions: watch fullscreen, comment, report */}
+              <div className="absolute right-4 bottom-4 flex flex-col gap-3">
+                <button
+                  onClick={() => enterFullscreen(trendingVideoRef, trendingCat.trimStart)}
+                  className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform border border-white/20"
+                  aria-label="Watch full screen"
+                >
+                  <Maximize2 className="w-5 h-5 text-white" />
+                </button>
+                <button
+                  onClick={() => setActiveCommentCatId(trendingCat.id)}
+                  className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform border border-white/20"
+                  aria-label="Comments"
+                >
+                  <MessageCircle className="w-5 h-5 text-white fill-white" />
+                </button>
+                <button onClick={() => setReportTarget({ id: trendingCat.id, name: trendingCat.name })} className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform border border-white/20">
+                  <Flag className="w-5 h-5 text-red-400" />
+                </button>
+              </div>
+
+              {/* Bottom Info */}
+              <div className="absolute bottom-4 left-4 right-20">
+                <h4 className="text-white font-black text-xl mb-1 flex items-center gap-2">
+                  {trendingCat.name}
+                  {trendingCat.isVerified && <ShieldCheck className="w-5 h-5 text-blue-400" />}
+                </h4>
+                <p className="text-white/90 text-sm mb-1 leading-tight">{trendingCat.cry}</p>
+                <p className="text-yellow-400 text-sm font-bold flex items-center gap-1">
+                  <Flame className="w-4 h-4 fill-yellow-400" /> {trendingCat.score} Votes
+                </p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-neutral-500 text-center py-4">Upload a cat to start the mayhem!</p>
+          )}
+        </div>
+
+        {/* Recent Winners */}
+        <div className="mb-8">
+          <div className="flex justify-between items-end mb-4">
+            <h3 className="text-2xl font-black text-neutral-800">Recent Winners</h3>
+            <button onClick={() => navigate('/hall-of-fame')} className="text-sm text-red-400 font-bold active:scale-95 transition-transform">See Hall of Fame</button>
+          </div>
+
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-8 h-8 text-red-400 animate-spin" />
+            </div>
+          ) : recentWinners.length > 0 ? (
+            <div className="flex justify-between gap-4">
+              {recentWinners.map((cat, index) => (
+                <motion.div layout key={cat.id} className="flex flex-col items-center flex-1">
+                  <div className={`relative w-full aspect-square rounded-full border-4 p-1 mb-2 ${index === 0 ? 'border-yellow-400' : 'border-neutral-200'}`}>
+                    <video
+                      src={cat.videoUrl}
+                      className="w-full h-full object-cover rounded-full cursor-pointer"
+                      autoPlay loop muted playsInline
+                      onClick={(e) => playFullscreen(e.currentTarget, cat.trimStart)}
+                      onLoadedMetadata={(e) => {
+                        if (cat.trimStart) e.currentTarget.currentTime = cat.trimStart;
+                      }}
+                      onTimeUpdate={(e) => {
+                        if (cat.trimStart !== undefined && cat.trimEnd !== undefined) {
+                          if (e.currentTarget.currentTime >= cat.trimEnd || e.currentTarget.currentTime < cat.trimStart) {
+                            e.currentTarget.currentTime = cat.trimStart;
+                          }
+                        }
+                      }}
+                    />
+                    <div className={`absolute -top-2 -left-2 text-white w-7 h-7 rounded-full flex items-center justify-center font-black text-xs border-2 border-white ${index === 0 ? 'bg-yellow-400 text-neutral-900' : 'bg-teal-400'}`}>
+                      #{index + 1}
+                    </div>
+                    {index === 0 && (
+                      <div className="absolute -bottom-2 -right-2 bg-yellow-400 w-10 h-10 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+                        <Star className="w-5 h-5 text-white fill-white" />
+                      </div>
+                    )}
+                  </div>
+                  <p className={`font-bold text-xs text-center flex items-center justify-center gap-1 ${index === 0 ? 'text-red-400 uppercase leading-tight' : 'text-neutral-500'}`}>
+                    {cat.name}
+                    {cat.isVerified && <ShieldCheck className="w-3 h-3 text-blue-500" />}
+                  </p>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-neutral-500 text-center py-4">No winners yet. Be the first!</p>
+          )}
+        </div>
+
         {/* ⭐ Kitty Kingdom */}
         {kingdomCats.length > 0 && (
           <div className="mb-8">
@@ -458,126 +602,52 @@ export function HomeScreen() {
             </div>
           </div>
         )}
-
-        {/* Recent Winners */}
-        <div className="mb-8">
-          <div className="flex justify-between items-end mb-4">
-            <h3 className="text-2xl font-black text-neutral-800">Recent Winners</h3>
-            <button onClick={() => navigate('/hall-of-fame')} className="text-sm text-red-400 font-bold active:scale-95 transition-transform">See Hall of Fame</button>
-          </div>
-          
-          {loading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="w-8 h-8 text-red-400 animate-spin" />
-            </div>
-          ) : recentWinners.length > 0 ? (
-            <div className="flex justify-between gap-4">
-              {recentWinners.map((cat, index) => (
-                <motion.div layout key={cat.id} className="flex flex-col items-center flex-1">
-                  <div className={`relative w-full aspect-square rounded-full border-4 p-1 mb-2 ${index === 0 ? 'border-yellow-400' : 'border-neutral-200'}`}>
-                    <video
-                      src={cat.videoUrl}
-                      className="w-full h-full object-cover rounded-full cursor-pointer"
-                      autoPlay loop muted playsInline
-                      onClick={(e) => playFullscreen(e.currentTarget, cat.trimStart)}
-                      onLoadedMetadata={(e) => {
-                        if (cat.trimStart) e.currentTarget.currentTime = cat.trimStart;
-                      }}
-                      onTimeUpdate={(e) => {
-                        if (cat.trimStart !== undefined && cat.trimEnd !== undefined) {
-                          if (e.currentTarget.currentTime >= cat.trimEnd || e.currentTarget.currentTime < cat.trimStart) {
-                            e.currentTarget.currentTime = cat.trimStart;
-                          }
-                        }
-                      }}
-                    />
-                    <div className={`absolute -top-2 -left-2 text-white w-7 h-7 rounded-full flex items-center justify-center font-black text-xs border-2 border-white ${index === 0 ? 'bg-yellow-400 text-neutral-900' : 'bg-teal-400'}`}>
-                      #{index + 1}
-                    </div>
-                    {index === 0 && (
-                      <div className="absolute -bottom-2 -right-2 bg-yellow-400 w-10 h-10 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
-                        <Star className="w-5 h-5 text-white fill-white" />
-                      </div>
-                    )}
-                  </div>
-                  <p className={`font-bold text-xs text-center flex items-center justify-center gap-1 ${index === 0 ? 'text-red-400 uppercase leading-tight' : 'text-neutral-500'}`}>
-                    {cat.name}
-                    {cat.isVerified && <ShieldCheck className="w-3 h-3 text-blue-500" />}
-                  </p>
-                </motion.div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-neutral-500 text-center py-4">No winners yet. Be the first!</p>
-          )}
-        </div>
-
-        {/* Trending Mayhem */}
-        <div>
-          <h3 className="text-2xl font-black text-neutral-800 mb-4">Trending Mayhem</h3>
-          
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="w-8 h-8 text-red-400 animate-spin" />
-            </div>
-          ) : trendingCat ? (
-            <div className="relative rounded-3xl overflow-hidden h-[280px] shadow-md">
-              <video
-                ref={trendingVideoRef}
-                src={trendingCat.videoUrl}
-                className="w-full h-full object-cover"
-                autoPlay loop muted playsInline
-                onLoadedMetadata={(e) => {
-                  if (trendingCat.trimStart) e.currentTarget.currentTime = trendingCat.trimStart;
-                }}
-                onTimeUpdate={(e) => {
-                  if (trendingCat.trimStart !== undefined && trendingCat.trimEnd !== undefined) {
-                    if (e.currentTarget.currentTime >= trendingCat.trimEnd || e.currentTarget.currentTime < trendingCat.trimStart) {
-                      e.currentTarget.currentTime = trendingCat.trimStart;
-                    }
-                  }
-                }}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-
-              {/* Actions: watch fullscreen, comment, report */}
-              <div className="absolute right-4 bottom-4 flex flex-col gap-3">
-                <button
-                  onClick={() => enterFullscreen(trendingVideoRef, trendingCat.trimStart)}
-                  className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform border border-white/20"
-                  aria-label="Watch full screen"
-                >
-                  <Maximize2 className="w-5 h-5 text-white" />
-                </button>
-                <button
-                  onClick={() => setActiveCommentCatId(trendingCat.id)}
-                  className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform border border-white/20"
-                  aria-label="Comments"
-                >
-                  <MessageCircle className="w-5 h-5 text-white fill-white" />
-                </button>
-                <button onClick={() => setReportTarget({ id: trendingCat.id, name: trendingCat.name })} className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform border border-white/20">
-                  <Flag className="w-5 h-5 text-red-400" />
-                </button>
-              </div>
-
-              {/* Bottom Info */}
-              <div className="absolute bottom-4 left-4 right-20">
-                <h4 className="text-white font-black text-xl mb-1 flex items-center gap-2">
-                  {trendingCat.name}
-                  {trendingCat.isVerified && <ShieldCheck className="w-5 h-5 text-blue-400" />}
-                </h4>
-                <p className="text-white/90 text-sm mb-1 leading-tight">{trendingCat.cry}</p>
-                <p className="text-yellow-400 text-sm font-bold flex items-center gap-1">
-                  <Flame className="w-4 h-4 fill-yellow-400" /> {trendingCat.score} Votes
-                </p>
-              </div>
-            </div>
-          ) : (
-            <p className="text-neutral-500 text-center py-4">Upload a cat to start the mayhem!</p>
-          )}
-        </div>
       </div>
+
+      {/* Announcement popup modal */}
+      {announcement && (
+        <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/60 backdrop-blur-sm p-4 pb-8">
+          <div className="w-full max-w-sm bg-white rounded-[2rem] overflow-hidden shadow-2xl">
+            {announcement.videoUrl && (
+              <div className="relative w-full aspect-video bg-black">
+                <video
+                  src={announcement.videoUrl}
+                  className="w-full h-full object-cover"
+                  autoPlay loop muted playsInline
+                  onClick={e => { const v = e.currentTarget; v.muted = !v.muted; }}
+                />
+              </div>
+            )}
+            <div className="px-6 pt-5 pb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <Megaphone className="w-5 h-5 text-purple-500 shrink-0" />
+                <h2 className="font-black text-neutral-800 text-lg leading-tight">{announcement.title}</h2>
+              </div>
+              {announcement.body && (
+                <p className="text-sm text-neutral-600 leading-relaxed mb-4">{announcement.body}</p>
+              )}
+              <div className="flex flex-col gap-2">
+                {announcement.ctaLabel && announcement.ctaUrl && (
+                  <a
+                    href={announcement.ctaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full bg-purple-500 text-white py-3 rounded-xl font-black text-center active:scale-95 transition-transform text-sm"
+                  >
+                    {announcement.ctaLabel}
+                  </a>
+                )}
+                <button
+                  onClick={() => setAnnouncement(null)}
+                  className="w-full bg-neutral-100 text-neutral-600 py-3 rounded-xl font-bold text-sm active:scale-95 transition-transform"
+                >
+                  Got it
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Kingdom video modal */}
       {kingdomVideo && (

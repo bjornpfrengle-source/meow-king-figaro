@@ -16,6 +16,7 @@ import { ModerationScreen } from './screens/ModerationScreen';
 import { TermsScreen } from './screens/TermsScreen';
 import { HallOfFameScreen } from './screens/HallOfFameScreen';
 import { ThemeAdminScreen } from './screens/ThemeAdminScreen';
+import { AnnouncementsAdminScreen } from './screens/AnnouncementsAdminScreen';
 import { PublicProfileScreen } from './screens/PublicProfileScreen';
 import { PrivacyScreen } from './screens/PrivacyScreen';
 
@@ -44,6 +45,7 @@ export default function App() {
             <Route path="/terms" element={<TermsScreen />} />
             <Route path="/hall-of-fame" element={<HallOfFameScreen />} />
             <Route path="/admin/themes" element={<ThemeAdminScreen />} />
+            <Route path="/admin/announcements" element={<AnnouncementsAdminScreen />} />
             <Route path="/user/:uid" element={<PublicProfileScreen />} />
             <Route path="/privacy" element={<PrivacyScreen />} />
           </Routes>

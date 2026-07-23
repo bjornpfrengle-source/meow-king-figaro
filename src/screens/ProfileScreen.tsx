@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Settings, Award, Plus, Video, ToggleRight, ToggleLeft, Trophy, Grid, Loader2, ShieldCheck, ShieldAlert, CalendarClock, Star, Trash2, MessageCircle, Pencil, Check, X } from 'lucide-react';
+import { Settings, Award, Plus, Video, ToggleRight, ToggleLeft, Trophy, Grid, Loader2, ShieldCheck, ShieldAlert, CalendarClock, Star, Trash2, MessageCircle, Pencil, Check, X, Megaphone } from 'lucide-react';
 import { CommentsSheet } from '../components/CommentsSheet';
 import { DIGITAL_REWARDS } from '../components/rewards';
 import { useNavigate } from 'react-router-dom';
@@ -182,6 +182,13 @@ export function ProfileScreen() {
                   aria-label="Moderation panel"
                 >
                   <ShieldAlert className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => navigate('/admin/announcements')}
+                  className="p-2 bg-purple-500 rounded-full text-white shadow-sm active:scale-95 transition-transform"
+                  aria-label="Announcements"
+                >
+                  <Megaphone className="w-5 h-5" />
                 </button>
               </>
             )}

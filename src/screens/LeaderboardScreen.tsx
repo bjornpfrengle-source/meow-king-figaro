@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Medal, Crown, Loader2, Flag, MessageCircle, Send, ChevronRight, Trophy } from 'lucide-react';
+import { Medal, Crown, Loader2, Flag, MessageCircle, Send, ChevronRight, Trophy, Flame, Maximize2, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, getDocs, getDoc, doc, onSnapshot, orderBy, limit, addDoc, serverTimestamp, where } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -51,7 +51,8 @@ export function LeaderboardScreen() {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMsg, setNewMsg] = useState('');
   const [sending, setSending] = useState(false);
-  const [pastResults, setPastResults] = useState<Array<{ theme: any; winner: Leader; ownerId: string; entrants: number }>>([]);
+  const [pastResults, setPastResults] = useState<Array<{ theme: any; winner: Leader; ownerId: string; entrants: number; videoUrl: string; cry: string }>>([]);
+  const [resultsVideo, setResultsVideo] = useState<{ name: string; cry: string; videoUrl: string; score: string; ownerId: string } | null>(null);
 
   // Fetch every real (video) entry once; tabs filter it client-side.
   useEffect(() => {
@@ -127,7 +128,7 @@ export function LeaderboardScreen() {
         .sort((a, b) => b.endMs - a.endMs)
         .slice(0, 8);
 
-      const results: Array<{ theme: any; winner: Leader; entrants: number }> = [];
+      const results: Array<{ theme: any; winner: Leader; ownerId: string; entrants: number; videoUrl: string; cry: string }> = [];
       for (const theme of ended) {
         try {
           const snap = await getDocs(query(collection(db, 'cats'), where('theme', '==', theme.slug)));
@@ -154,6 +155,8 @@ export function LeaderboardScreen() {
             theme,
             entrants: cats.length,
             ownerId: top.ownerId || '',
+            videoUrl: top.videoUrl || '',
+            cry: top.cry || '',
             winner: {
               id: top.id,
               rank: 1,
@@ -316,13 +319,13 @@ export function LeaderboardScreen() {
               <Trophy className="w-5 h-5 text-amber-500" /> Results Board
             </h2>
             <div className="space-y-2.5">
-              {pastResults.map(({ theme, winner, entrants, ownerId }) => (
+              {pastResults.map(({ theme, winner, entrants, ownerId, videoUrl, cry }) => (
                 <motion.div
                   key={theme.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  onClick={() => ownerId && navigate(`/user/${ownerId}`)}
-                  className={`bg-white border border-pink-50 rounded-2xl p-3.5 flex items-center gap-3 shadow-sm ${ownerId ? 'cursor-pointer active:scale-[0.98] transition-transform' : ''}`}
+                  onClick={() => videoUrl && setResultsVideo({ name: winner.name, cry, videoUrl, score: winner.score, ownerId })}
+                  className={`bg-white border border-pink-50 rounded-2xl p-3.5 flex items-center gap-3 shadow-sm ${videoUrl ? 'cursor-pointer active:scale-[0.98] transition-transform' : ''}`}
                 >
                   {/* winner avatar */}
                   <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-amber-200 shrink-0">
@@ -422,6 +425,57 @@ export function LeaderboardScreen() {
         targetId={reportTarget?.id ?? null}
         targetName={reportTarget?.name}
       />
+
+      {/* Results Board video modal */}
+      {resultsVideo && (
+        <div className="fixed inset-0 z-[80] bg-black flex flex-col" onClick={() => setResultsVideo(null)}>
+          <div className="relative flex-1 overflow-hidden" onClick={e => e.stopPropagation()}>
+            <video
+              key={resultsVideo.videoUrl}
+              src={resultsVideo.videoUrl}
+              className="w-full h-full object-cover"
+              autoPlay loop muted playsInline
+              onClick={e => { const v = e.currentTarget; v.muted = !v.muted; }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-black/50 pointer-events-none" />
+
+            {/* Top bar */}
+            <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 pb-4">
+              <button onClick={() => setResultsVideo(null)} className="w-10 h-10 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20">
+                <span className="text-white text-xl font-bold leading-none">×</span>
+              </button>
+              <button
+                onClick={() => { setResultsVideo(null); navigate(`/user/${resultsVideo.ownerId}`); }}
+                className="flex items-center gap-1.5 bg-white/15 backdrop-blur-md border border-white/25 text-white text-xs font-bold px-4 py-2 rounded-full active:scale-95 transition-transform"
+              >
+                View Profile →
+              </button>
+            </div>
+
+            {/* Right actions */}
+            <div className="absolute right-4 bottom-24 flex flex-col gap-3">
+              <button
+                onClick={() => setReportTarget({ id: resultsVideo.videoUrl, name: resultsVideo.name })}
+                className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 active:scale-95 transition-transform"
+              >
+                <Flag className="w-5 h-5 text-red-400" />
+              </button>
+            </div>
+
+            {/* Bottom info */}
+            <div className="absolute bottom-0 left-0 right-20 px-4 pb-6">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Crown className="w-5 h-5 text-yellow-400 fill-yellow-400" />
+                <h4 className="text-white font-black text-2xl leading-tight">{resultsVideo.name}</h4>
+              </div>
+              {resultsVideo.cry && <p className="text-white/80 text-sm mb-2 leading-snug">{resultsVideo.cry}</p>}
+              <p className="text-yellow-400 text-sm font-bold flex items-center gap-1.5">
+                <Flame className="w-4 h-4 fill-yellow-400" /> {parseInt(resultsVideo.score).toLocaleString()} Votes
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
