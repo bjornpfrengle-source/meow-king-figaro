@@ -349,6 +349,7 @@ export function HomeScreen() {
               </div>
             </div>
 
+            <div className="flex gap-4 overflow-x-auto pb-4 -mx-6 px-6 [&::-webkit-scrollbar]:hidden snap-x snap-mandatory scroll-pl-6">
             {(() => {
               const KP = [
                 { bg: '#fdf2f8', border: '#f472b6', nameTxt: '#701a75', cryTxt: '#be185d', ringA: '#f9a8d4', ringB: '#ec4899', handleBg: '#fce7f3', handleTxt: '#9d174d', emptyBg: '#fce7f3', shadow: 'rgba(244,114,182,0.25)' },
@@ -449,6 +450,7 @@ export function HomeScreen() {
             })()}
             {/* Right padding sentinel */}
             <div className="w-2 flex-shrink-0" />
+            </div>
           </div>
         )}
 
