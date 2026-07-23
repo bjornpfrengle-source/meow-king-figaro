@@ -25,6 +25,8 @@ interface KingdomCat {
   id: string;
   name: string;
   cry: string;
+  videoUrl: string;
+  trimStart?: number;
   catImg?: string;
   catImg2?: string;
   catName2?: string;
@@ -72,6 +74,7 @@ export function HomeScreen() {
   const [activeCommentCatId, setActiveCommentCatId] = useState<string | null>(null);
   const [kingdomCats, setKingdomCats] = useState<KingdomCat[]>([]);
   const [kingdomLikes, setKingdomLikes] = useState<Record<string, boolean>>({});
+  const [kingdomVideo, setKingdomVideo] = useState<KingdomCat | null>(null);
 
   // Ticks the counter up over time so it feels live (starts from the base,
   // which is already the initial state — no flash of 0).
@@ -183,6 +186,8 @@ export function HomeScreen() {
             id: cat.id,
             name: cat.name || 'Unknown Cat',
             cry: cat.cry || '',
+            videoUrl: cat.videoUrl,
+            trimStart: cat.trimStart,
             catImg,
             catImg2,
             catName2,
@@ -366,7 +371,7 @@ export function HomeScreen() {
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.04 }}
-                    onClick={() => navigate(`/user/${cat.ownerId}`)}
+                    onClick={() => setKingdomVideo(cat)}
                     className="min-w-[calc(100%-32px)] h-[300px] flex-shrink-0 snap-start cursor-pointer rounded-[2rem] overflow-hidden relative active:scale-[0.985] transition-transform"
                     style={{
                       backgroundColor: p.bg,
@@ -573,6 +578,74 @@ export function HomeScreen() {
           )}
         </div>
       </div>
+
+      {/* Kingdom video modal */}
+      {kingdomVideo && (
+        <div className="fixed inset-0 z-[80] bg-black flex flex-col" onClick={() => setKingdomVideo(null)}>
+          {/* Video */}
+          <div className="relative flex-1 overflow-hidden" onClick={e => e.stopPropagation()}>
+            <video
+              key={kingdomVideo.id}
+              src={kingdomVideo.videoUrl}
+              className="w-full h-full object-cover"
+              autoPlay loop muted playsInline
+              onLoadedMetadata={e => { if (kingdomVideo.trimStart) e.currentTarget.currentTime = kingdomVideo.trimStart; }}
+              onClick={e => { const v = e.currentTarget; v.muted = !v.muted; }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-black/50 pointer-events-none" />
+
+            {/* Top bar: close + view profile */}
+            <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 pb-4">
+              <button
+                onClick={() => setKingdomVideo(null)}
+                className="w-10 h-10 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20"
+              >
+                <span className="text-white text-xl font-bold leading-none">×</span>
+              </button>
+              <button
+                onClick={() => { setKingdomVideo(null); navigate(`/user/${kingdomVideo.ownerId}`); }}
+                className="flex items-center gap-1.5 bg-white/15 backdrop-blur-md border border-white/25 text-white text-xs font-bold px-4 py-2 rounded-full active:scale-95 transition-transform"
+              >
+                {kingdomVideo.ownerImg && (
+                  <img src={kingdomVideo.ownerImg} alt="" className="w-5 h-5 rounded-full object-cover border border-white/30" referrerPolicy="no-referrer" />
+                )}
+                View Profile →
+              </button>
+            </div>
+
+            {/* Right side action buttons */}
+            <div className="absolute right-4 bottom-24 flex flex-col gap-3">
+              <button
+                onClick={e => { e.stopPropagation(); const v = e.currentTarget.closest('.relative')?.querySelector('video') as HTMLVideoElement; if (v) playFullscreen(v, kingdomVideo.trimStart); }}
+                className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 active:scale-95 transition-transform"
+              >
+                <Maximize2 className="w-5 h-5 text-white" />
+              </button>
+              <button
+                onClick={e => { e.stopPropagation(); setKingdomVideo(null); setActiveCommentCatId(kingdomVideo.id); }}
+                className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 active:scale-95 transition-transform"
+              >
+                <MessageCircle className="w-5 h-5 text-white fill-white" />
+              </button>
+              <button
+                onClick={e => { e.stopPropagation(); setKingdomVideo(null); setReportTarget({ id: kingdomVideo.id, name: kingdomVideo.name }); }}
+                className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 active:scale-95 transition-transform"
+              >
+                <Flag className="w-5 h-5 text-red-400" />
+              </button>
+            </div>
+
+            {/* Bottom info */}
+            <div className="absolute bottom-0 left-0 right-20 px-4 pb-6">
+              <h4 className="text-white font-black text-2xl mb-1 leading-tight">{kingdomVideo.name}</h4>
+              {kingdomVideo.cry && <p className="text-white/80 text-sm mb-2 leading-snug">{kingdomVideo.cry}</p>}
+              <p className="text-yellow-400 text-sm font-bold flex items-center gap-1.5">
+                <Flame className="w-4 h-4 fill-yellow-400" /> {kingdomVideo.score} Votes
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ReportModal
         isOpen={!!reportTarget}
