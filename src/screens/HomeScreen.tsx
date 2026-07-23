@@ -111,6 +111,19 @@ export function HomeScreen() {
   }, []);
   const trendingVideoRef = useRef<HTMLVideoElement>(null);
 
+  const shareCat = async (name: string, cry?: string) => {
+    const url = 'https://meow-king-figaro-production.up.railway.app';
+    const text = cry ? `🐱 ${name}: "${cry}" — Vote now on Cat Chaos Arena!` : `🐱 ${name} is competing on Cat Chaos Arena!`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Cat Chaos Arena', text, url });
+      } else {
+        await navigator.clipboard.writeText(`${text} ${url}`);
+        alert('Link copied!');
+      }
+    } catch (e) { /* user cancelled share */ }
+  };
+
   const playFullscreen = (v: any, trimStart: number = 0) => {
     if (!v) return;
     try {
@@ -394,7 +407,7 @@ export function HomeScreen() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
 
-              {/* Actions: watch fullscreen, comment, report */}
+              {/* Actions: watch fullscreen, comment, share, report */}
               <div className="absolute right-4 bottom-4 flex flex-col gap-3">
                 <button
                   onClick={() => enterFullscreen(trendingVideoRef, trendingCat.trimStart)}
@@ -409,6 +422,13 @@ export function HomeScreen() {
                   aria-label="Comments"
                 >
                   <MessageCircle className="w-5 h-5 text-white fill-white" />
+                </button>
+                <button
+                  onClick={() => shareCat(trendingCat.name, trendingCat.cry)}
+                  className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform border border-white/20"
+                  aria-label="Share"
+                >
+                  <Share2 className="w-5 h-5 text-white" />
                 </button>
                 <button onClick={() => setReportTarget({ id: trendingCat.id, name: trendingCat.name })} className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform border border-white/20">
                   <Flag className="w-5 h-5 text-red-400" />
@@ -696,6 +716,12 @@ export function HomeScreen() {
                 className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 active:scale-95 transition-transform"
               >
                 <MessageCircle className="w-5 h-5 text-white fill-white" />
+              </button>
+              <button
+                onClick={e => { e.stopPropagation(); shareCat(kingdomVideo.name, kingdomVideo.cry); }}
+                className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 active:scale-95 transition-transform"
+              >
+                <Share2 className="w-5 h-5 text-white" />
               </button>
               <button
                 onClick={e => { e.stopPropagation(); setKingdomVideo(null); setReportTarget({ id: kingdomVideo.id, name: kingdomVideo.name }); }}

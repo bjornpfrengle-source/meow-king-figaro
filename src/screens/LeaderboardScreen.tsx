@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Medal, Crown, Loader2, Flag, MessageCircle, Send, ChevronRight, Trophy, Flame, Maximize2, Play } from 'lucide-react';
+import { Medal, Crown, Loader2, Flag, MessageCircle, Send, ChevronRight, Trophy, Flame, Maximize2, Play, Share2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, getDocs, getDoc, doc, onSnapshot, orderBy, limit, addDoc, serverTimestamp, where } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -454,6 +454,21 @@ export function LeaderboardScreen() {
 
             {/* Right actions */}
             <div className="absolute right-4 bottom-24 flex flex-col gap-3">
+              <button
+                onClick={async () => {
+                  const url = 'https://meow-king-figaro-production.up.railway.app';
+                  const text = resultsVideo.cry
+                    ? `🏆 ${resultsVideo.name}: "${resultsVideo.cry}" — Arena winner on Cat Chaos Arena!`
+                    : `🏆 ${resultsVideo.name} won on Cat Chaos Arena!`;
+                  try {
+                    if (navigator.share) { await navigator.share({ title: 'Cat Chaos Arena', text, url }); }
+                    else { await navigator.clipboard.writeText(`${text} ${url}`); alert('Link copied!'); }
+                  } catch (e) { /* cancelled */ }
+                }}
+                className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 active:scale-95 transition-transform"
+              >
+                <Share2 className="w-5 h-5 text-white" />
+              </button>
               <button
                 onClick={() => setReportTarget({ id: resultsVideo.videoUrl, name: resultsVideo.name })}
                 className="w-12 h-12 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 active:scale-95 transition-transform"
