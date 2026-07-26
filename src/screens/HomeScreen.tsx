@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, type RefObject } from 'react';
 import { motion } from 'motion/react';
-import { Clock, Play, ChevronRight, Sparkles, Gift, Bell, TrendingUp, MessageCircle, Share2, Plus, Star, Flame, PawPrint, Loader2, Flag, ShieldCheck, Maximize2, Heart, Megaphone } from 'lucide-react';
+import { Clock, Play, ChevronRight, Sparkles, Gift, Bell, TrendingUp, MessageCircle, Share2, Plus, Star, Flame, PawPrint, Loader2, Flag, ShieldCheck, Maximize2, Heart, Megaphone, Lock, Crown } from 'lucide-react';
 import { CommentsSheet } from '../components/CommentsSheet';
-import { useThemes, Countdown } from '../components/themes';
+import { useThemes, Countdown, isThemeRevealed } from '../components/themes';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, orderBy, limit, getDocs, doc, getDoc, onSnapshot, where } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -64,7 +64,7 @@ function computeActivityBase() {
 
 export function HomeScreen() {
   const navigate = useNavigate();
-  const { user, userProfile, signIn } = useFirebase();
+  const { user, userProfile, signIn, isPremium } = useFirebase();
   const { active, upcoming } = useThemes();
   const [topCats, setTopCats] = useState<Cat[]>([]);
   const [totalCats, setTotalCats] = useState(computeActivityBase);
@@ -343,11 +343,24 @@ export function HomeScreen() {
                 </div>
 
                 <div className="relative z-10 flex flex-row items-center justify-between">
-                  <div>
-                    <div className="bg-neutral-100 text-neutral-500 w-fit px-2.5 py-1 rounded-full mb-2 text-[10px] font-bold tracking-wider uppercase">
-                      Upcoming Theme
-                    </div>
-                    <h2 className="text-xl font-black mb-1.5 leading-tight text-neutral-800">{t.title}</h2>
+                  <div className="min-w-0 flex-1">
+                    {isThemeRevealed(t, isPremium) ? (
+                      <>
+                        <div className="bg-neutral-100 text-neutral-500 w-fit px-2.5 py-1 rounded-full mb-2 text-[10px] font-bold tracking-wider uppercase">
+                          Upcoming Theme
+                        </div>
+                        <h2 className="text-xl font-black mb-1.5 leading-tight text-neutral-800">{t.title}</h2>
+                      </>
+                    ) : (
+                      <>
+                        {/* Title stays hidden until it unlocks — otherwise early
+                            access means nothing, since the name is the whole secret. */}
+                        <div className="bg-amber-100 text-amber-600 w-fit px-2.5 py-1 rounded-full mb-2 text-[10px] font-black tracking-wider uppercase flex items-center gap-1">
+                          <Lock className="w-2.5 h-2.5" /> Locked
+                        </div>
+                        <div className="h-5 w-32 rounded-md bg-neutral-200 mb-2.5" />
+                      </>
+                    )}
 
                     <div className="flex items-center gap-1.5 text-neutral-500">
                       <Clock className="w-3.5 h-3.5" />
@@ -355,8 +368,15 @@ export function HomeScreen() {
                     </div>
                   </div>
 
-                  <button onClick={() => navigate('/theme')} className="bg-neutral-100 text-neutral-600 p-3 rounded-full active:scale-95 transition-transform flex-shrink-0">
-                    <Bell className="w-5 h-5" />
+                  <button
+                    onClick={() => navigate(isThemeRevealed(t, isPremium) ? '/theme' : '/premium')}
+                    className={`p-3 rounded-full active:scale-95 transition-transform flex-shrink-0 ${
+                      isThemeRevealed(t, isPremium)
+                        ? 'bg-neutral-100 text-neutral-600'
+                        : 'bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-md'
+                    }`}
+                  >
+                    {isThemeRevealed(t, isPremium) ? <Bell className="w-5 h-5" /> : <Crown className="w-5 h-5" />}
                   </button>
                 </div>
               </motion.div>
