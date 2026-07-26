@@ -1,0 +1,116 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <clipPath id="squircle">
+      <rect x="0" y="0" width="1024" height="1024" rx="229" ry="229"/>
+    </clipPath>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ff6b9d"/>
+      <stop offset="45%" stop-color="#fb7185"/>
+      <stop offset="100%" stop-color="#fb923c"/>
+    </linearGradient>
+    <radialGradient id="glow1" cx="0.25" cy="0.2" r="0.6">
+      <stop offset="0%" stop-color="#ffd9e8" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#ffd9e8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow2" cx="0.85" cy="0.9" r="0.7">
+      <stop offset="0%" stop-color="#c4b5fd" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#c4b5fd" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.55"/>
+      <stop offset="35%" stop-color="#ffffff" stop-opacity="0.12"/>
+      <stop offset="60%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="whitecat" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f1e8ef"/>
+    </linearGradient>
+    <linearGradient id="blackcat" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#3b3540"/>
+      <stop offset="100%" stop-color="#17141c"/>
+    </linearGradient>
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="18" stdDeviation="28" flood-color="#8b1e4b" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <g clip-path="url(#squircle)">
+    <rect width="1024" height="1024" fill="url(#bg)"/>
+    <rect width="1024" height="1024" fill="url(#glow1)"/>
+    <rect width="1024" height="1024" fill="url(#glow2)"/>
+
+    <!-- crowd paw silhouettes -->
+    <g fill="#7c1d45" opacity="0.14">
+      <circle cx="180" cy="200" r="34"/><circle cx="140" cy="150" r="16"/><circle cx="180" cy="136" r="16"/><circle cx="220" cy="150" r="16"/>
+      <circle cx="850" cy="240" r="30"/><circle cx="815" cy="196" r="14"/><circle cx="850" cy="184" r="14"/><circle cx="885" cy="196" r="14"/>
+      <circle cx="520" cy="130" r="26"/><circle cx="490" cy="92" r="12"/><circle cx="520" cy="82" r="12"/><circle cx="550" cy="92" r="12"/>
+    </g>
+
+    <!-- BLACK CAT (right, behind) -->
+    <g filter="url(#soft)">
+      <!-- ears: bases buried in the head -->
+      <path d="M 520 450 L 565 258 L 668 372 Z" fill="url(#blackcat)"/>
+      <path d="M 548 432 L 575 305 L 640 378 Z" fill="#c2334f"/>
+      <path d="M 848 445 L 852 255 L 712 360 Z" fill="url(#blackcat)"/>
+      <path d="M 822 425 L 824 305 L 738 370 Z" fill="#c2334f"/>
+      <!-- head -->
+      <ellipse cx="682" cy="560" rx="205" ry="198" fill="url(#blackcat)"/>
+      <!-- eyes -->
+      <g>
+        <ellipse cx="618" cy="518" rx="42" ry="50" fill="#7ef05a"/>
+        <ellipse cx="618" cy="522" rx="15" ry="38" fill="#17141c"/>
+        <circle cx="632" cy="500" r="11" fill="#ffffff"/>
+        <ellipse cx="756" cy="512" rx="42" ry="50" fill="#7ef05a"/>
+        <ellipse cx="756" cy="516" rx="15" ry="38" fill="#17141c"/>
+        <circle cx="770" cy="494" r="11" fill="#ffffff"/>
+      </g>
+      <!-- nose + sly smile -->
+      <path d="M 672 590 L 704 590 L 688 612 Z" fill="#ff8fa8"/>
+      <path d="M 688 612 Q 688 638 660 642 M 688 612 Q 690 642 724 638" stroke="#0c0a10" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <!-- whiskers -->
+      <g stroke="#57505e" stroke-width="8" stroke-linecap="round">
+        <path d="M 826 580 L 900 568"/><path d="M 822 608 L 898 612"/>
+      </g>
+    </g>
+
+    <!-- WHITE CAT (left, in front) -->
+    <g filter="url(#soft)">
+      <!-- ears: bases buried in the head -->
+      <path d="M 198 468 L 246 268 L 352 380 Z" fill="url(#whitecat)"/>
+      <path d="M 228 448 L 258 315 L 324 386 Z" fill="#ffb3c8"/>
+      <path d="M 512 460 L 468 266 L 362 378 Z" fill="url(#whitecat)"/>
+      <path d="M 484 442 L 456 312 L 390 382 Z" fill="#ffb3c8"/>
+      <!-- head -->
+      <ellipse cx="356" cy="566" rx="210" ry="200" fill="url(#whitecat)"/>
+      <!-- eyes -->
+      <g>
+        <ellipse cx="285" cy="530" rx="44" ry="50" fill="#2d2a33"/>
+        <circle cx="301" cy="512" r="14" fill="#ffffff"/>
+        <circle cx="273" cy="546" r="7" fill="#ffffff" opacity="0.9"/>
+        <ellipse cx="425" cy="524" rx="44" ry="50" fill="#2d2a33"/>
+        <circle cx="441" cy="506" r="14" fill="#ffffff"/>
+        <circle cx="413" cy="540" r="7" fill="#ffffff" opacity="0.9"/>
+      </g>
+      <!-- nose + smile -->
+      <path d="M 340 600 L 372 600 L 356 624 Z" fill="#ff6b9d"/>
+      <path d="M 356 624 Q 356 654 324 656 M 356 624 Q 356 654 388 656" stroke="#2d2a33" stroke-width="10" fill="none" stroke-linecap="round"/>
+      <!-- open happy mouth -->
+      <path d="M 324 656 Q 356 694 388 656 Q 356 716 324 656 Z" fill="#e8447a"/>
+      <!-- whiskers -->
+      <g stroke="#d9c2d0" stroke-width="8" stroke-linecap="round">
+        <path d="M 152 594 L 76 582"/><path d="M 156 624 L 80 630"/>
+      </g>
+    </g>
+
+    <!-- VS spark between them -->
+    <g transform="translate(512,806)">
+      <circle r="82" fill="#ffffff" opacity="0.94"/>
+      <circle r="82" fill="none" stroke="#ffd166" stroke-width="10"/>
+      <text x="0" y="30" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-size="82" font-weight="900" fill="#e8447a">VS</text>
+    </g>
+
+    <!-- liquid glass sheen -->
+    <path d="M 0 0 H 1024 V 340 Q 512 480 0 300 Z" fill="url(#sheen)"/>
+    <rect x="14" y="14" width="996" height="996" rx="215" fill="none" stroke="#ffffff" stroke-opacity="0.55" stroke-width="10"/>
+  </g>
+</svg>

@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, signInWithPopup, signOut, OAuthProvider, signInWithCredential } from 'firebase/auth';
-import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../firebase';
+import { Species, DEFAULT_SPECIES } from './species';
+import { FOUNDING_PERIOD_OPEN } from './limits';
 
 export interface UserProfile {
   uid: string;
@@ -21,6 +23,12 @@ export interface UserProfile {
   banned?: boolean;
   badges?: string[];
   blockedUserIds?: string[];
+  /** Catnip Club subscriber. Drives every premium gate in the app. */
+  isPremium?: boolean;
+  /** Joined during launch — keeps unlimited uploads for life. */
+  isFoundingMember?: boolean;
+  /** Which arena this account plays in. V1 is always 'cat'. */
+  species?: Species;
 }
 
 // Owner account that is always treated as an admin (matches firestore.rules)
@@ -31,6 +39,10 @@ interface FirebaseContextType {
   userProfile: UserProfile | null;
   isAuthReady: boolean;
   isAdmin: boolean;
+  /** Catnip Club member. Read this rather than userProfile.isPremium directly. */
+  isPremium: boolean;
+  /** Exempt from the monthly upload cap (members + founding members + admins). */
+  hasUnlimitedUploads: boolean;
   signIn: () => Promise<void>;
   signInWithApple: () => Promise<void>;
   logOut: () => Promise<void>;
@@ -66,7 +78,11 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
             uid: currentUser.uid,
             displayName: currentUser.displayName || 'Anonymous Cat',
             photoURL: currentUser.photoURL || '',
-            role: 'user'
+            role: 'user',
+            isPremium: false,
+            isFoundingMember: FOUNDING_PERIOD_OPEN,
+            species: DEFAULT_SPECIES,
+            createdAt: serverTimestamp()
           });
         }
 
@@ -151,9 +167,14 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   };
 
   const isAdmin = userProfile?.role === 'admin' || user?.email === OWNER_EMAIL;
+  // Admins always get the premium experience so you can test gated features
+  // without flipping your own flag.
+  const isPremium = userProfile?.isPremium === true || isAdmin;
+  // Founding members keep unlimited uploads even without a subscription.
+  const hasUnlimitedUploads = isPremium || userProfile?.isFoundingMember === true;
 
   return (
-    <FirebaseContext.Provider value={{ user, userProfile, isAuthReady, isAdmin, signIn, signInWithApple, logOut }}>
+    <FirebaseContext.Provider value={{ user, userProfile, isAuthReady, isAdmin, isPremium, hasUnlimitedUploads, signIn, signInWithApple, logOut }}>
       {children}
     </FirebaseContext.Provider>
   );

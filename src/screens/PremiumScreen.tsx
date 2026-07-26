@@ -1,6 +1,47 @@
 import { motion } from 'motion/react';
-import { Sparkles, Crown, Zap, Star } from 'lucide-react';
+import { Sparkles, Crown, Star, CalendarClock, Cat, RefreshCw, Clapperboard, Infinity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+
+/**
+ * Catnip Club perks.
+ *
+ * Deliberately excluded: anything that buys leaderboard position or extra
+ * visibility in voting. The arena has to stay winnable on merit or the
+ * leaderboard stops meaning anything — which is the whole point of the app.
+ * Every perk here either saves time, adds capacity, or is pure vanity.
+ */
+const PERKS = [
+  {
+    icon: <Infinity className="w-5 h-5 text-emerald-400" />,
+    title: 'Unlimited Entries',
+    detail: 'Enter every theme, every day. No monthly allowance.',
+  },
+  {
+    icon: <CalendarClock className="w-5 h-5 text-amber-400" />,
+    title: 'Early Theme Access',
+    detail: 'See challenges 3 days ahead — time to actually catch the shot.',
+  },
+  {
+    icon: <Cat className="w-5 h-5 text-fuchsia-400" />,
+    title: 'Add a Second Cat',
+    detail: 'Two troublemakers? Enter them both.',
+  },
+  {
+    icon: <RefreshCw className="w-5 h-5 text-teal-400" />,
+    title: 'Swap Your Entry',
+    detail: 'Caught a better take? Replace it before voting closes.',
+  },
+  {
+    icon: <Clapperboard className="w-5 h-5 text-sky-400" />,
+    title: '30-Second Videos',
+    detail: 'Double the clip length of a free entry.',
+  },
+  {
+    icon: <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />,
+    title: 'Glowing Borders & Paw Colours',
+    detail: 'Make your cat unmistakable in the feed.',
+  },
+];
 
 export function PremiumScreen() {
   const navigate = useNavigate();
@@ -29,20 +70,27 @@ export function PremiumScreen() {
         </div>
 
         {/* Perks */}
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 mb-8 space-y-5 shadow-2xl">
-          {[
-            { icon: <Zap className="w-5 h-5 text-amber-400 fill-amber-400" />, text: '3 Extra Daily Entries' },
-            { icon: <Star className="w-5 h-5 text-fuchsia-400 fill-fuchsia-400" />, text: 'Glowing Video Borders' },
-            { icon: <Sparkles className="w-5 h-5 text-teal-400 fill-teal-400" />, text: 'Custom Paw-Print Colors' },
-            { icon: <Crown className="w-5 h-5 text-yellow-400 fill-yellow-400" />, text: 'Priority Matchmaking' }
-          ].map((perk, i) => (
-            <div key={i} className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center shrink-0 border border-white/5">
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 mb-6 space-y-5 shadow-2xl">
+          {PERKS.map((perk, i) => (
+            <div key={i} className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center shrink-0 border border-white/5 mt-0.5">
                 {perk.icon}
               </div>
-              <span className="font-bold text-white text-lg">{perk.text}</span>
+              <div className="flex-1">
+                <p className="font-bold text-white text-base leading-tight">{perk.title}</p>
+                <p className="text-purple-200/70 text-sm font-medium leading-snug mt-0.5">{perk.detail}</p>
+              </div>
             </div>
           ))}
+        </div>
+
+        {/* Fair-play promise — the leaderboard is not for sale */}
+        <div className="flex items-start gap-3 bg-teal-400/10 border border-teal-400/20 rounded-2xl p-4 mb-8">
+          <Sparkles className="w-5 h-5 text-teal-300 shrink-0 mt-0.5" />
+          <p className="text-teal-100/90 text-xs font-medium leading-relaxed">
+            <span className="font-black text-teal-200">Fair fight, always.</span> Catnip Club never buys votes,
+            boosts your cat in the voting deck, or nudges the leaderboard. Every win is earned.
+          </p>
         </div>
 
         <div className="mt-auto space-y-4">

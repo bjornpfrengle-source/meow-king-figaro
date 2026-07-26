@@ -7,6 +7,12 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { auth, db, storage } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
 import { useThemes } from '../components/themes';
+import { APP_SPECIES } from '../components/species';
+import { FREE_UPLOADS_PER_MONTH, startOfMonthMs, nextResetLabel } from '../components/limits';
+
+/** Clip length caps. Catnip Club members get double the runway. */
+const FREE_MAX_SECONDS = 15;
+const PREMIUM_MAX_SECONDS = 30;
 
 enum OperationType {
   CREATE = 'create',
@@ -62,7 +68,8 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 export function UploadScreen() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user, userProfile, signIn } = useFirebase();
+  const { user, userProfile, signIn, isPremium, hasUnlimitedUploads } = useFirebase();
+  const maxSeconds = isPremium ? PREMIUM_MAX_SECONDS : FREE_MAX_SECONDS;
   const { active, themes } = useThemes();
 
   // The theme this entry belongs to: prefer the URL (from "ENTER NOW"), else the
@@ -90,6 +97,7 @@ export function UploadScreen() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [showUploadLimit, setShowUploadLimit] = useState(false);
+  const [showMonthlyLimit, setShowMonthlyLimit] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -98,7 +106,9 @@ export function UploadScreen() {
       if (userProfile.catName) {
         catsList.push({ id: 'cat1', name: userProfile.catName });
       }
-      if (userProfile.catName2) {
+      // A second cat is a Catnip Club perk. If someone's subscription lapses we
+      // keep their cat2 data intact but stop offering it as an entry option.
+      if (userProfile.catName2 && isPremium) {
         catsList.push({ id: 'cat2', name: userProfile.catName2 });
       }
       setAvailableCats(catsList);
@@ -140,8 +150,8 @@ export function UploadScreen() {
     if (!el || !duration) return;
     const rect = el.getBoundingClientRect();
     const frac = Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
-    const maxStart = Math.max(0, duration - 15);
-    const newStart = Math.min(Math.max(frac * duration - 7.5, 0), maxStart);
+    const maxStart = Math.max(0, duration - maxSeconds);
+    const newStart = Math.min(Math.max(frac * duration - maxSeconds / 2, 0), maxStart);
     setTrimStart(newStart);
     if (videoRef.current) videoRef.current.currentTime = newStart;
   };
@@ -180,23 +190,47 @@ export function UploadScreen() {
 
     if (!videoFile || !caption.trim() || !catName.trim() || !selectedCatId) return;
 
-    // Daily upload limit: free users get 1 upload per day
-    if (!userProfile?.isPremium) {
+    // Re-entering a theme you've already entered is a swap, and swapping is a
+    // Catnip Club perk. Free users are locked to their first take; members can
+    // replace it right up until voting closes. (Note this is per-theme, not
+    // per-day — with one theme a day a day-based cap would mean the same thing
+    // today, but this keeps working if a weekly or surprise theme overlaps.)
+    if (!isPremium) {
       try {
-        const todayMidnight = new Date();
-        todayMidnight.setHours(0, 0, 0, 0);
-        const allUserCats = await getDocs(query(collection(db, 'cats'), where('ownerId', '==', currentUser.uid)));
-        const todayCount = allUserCats.docs.filter(d => {
-          const ts = d.data().createdAt;
-          return ts?.toDate?.() >= todayMidnight;
-        }).length;
-        if (todayCount >= 1) {
+        const existing = await getDocs(query(
+          collection(db, 'cats'),
+          where('ownerId', '==', currentUser.uid),
+          where('theme', '==', themeSlug)
+        ));
+        if (!existing.empty) {
           setShowUploadLimit(true);
           setIsSubmitting(false);
           return;
         }
       } catch (e) {
-        console.error('Error checking daily limit:', e);
+        console.error('Error checking existing entry:', e);
+      }
+    }
+
+    // Monthly upload allowance. Members and founding members are exempt.
+    // The cap protects bandwidth costs without making the free tier unusable —
+    // a free user can still enter roughly once a week.
+    if (!hasUnlimitedUploads) {
+      try {
+        const monthStart = startOfMonthMs();
+        const mine = await getDocs(query(collection(db, 'cats'), where('ownerId', '==', currentUser.uid)));
+        const usedThisMonth = mine.docs.filter((d) => {
+          const ts = d.data().createdAt;
+          const ms = ts?.toMillis ? ts.toMillis() : 0;
+          return ms >= monthStart;
+        }).length;
+        if (usedThisMonth >= FREE_UPLOADS_PER_MONTH) {
+          setShowMonthlyLimit(true);
+          setIsSubmitting(false);
+          return;
+        }
+      } catch (e) {
+        console.error('Error checking monthly allowance:', e);
       }
     }
 
@@ -212,8 +246,8 @@ export function UploadScreen() {
     setIsSubmitting(true);
 
     try {
-      // The end of the selected 15s window
-      const trimEndVal = duration > 15 ? trimStart + 15 : (duration || 15);
+      // The end of the selected clip window (15s free, 30s for Catnip Club)
+      const trimEndVal = duration > maxSeconds ? trimStart + maxSeconds : (duration || maxSeconds);
 
       // 1. Send the raw video to the server to trim + web-optimize it
       setStage('Uploading video…');
@@ -279,6 +313,7 @@ export function UploadScreen() {
         trimStart: 0,
         framePosition: framePosition,
         theme: theme,
+        species: APP_SPECIES,
         createdAt: serverTimestamp()
       });
 
@@ -338,7 +373,7 @@ export function UploadScreen() {
               </div>
               <div className="text-center px-6">
                 <p className="font-black text-xl text-neutral-800 mb-1">Upload Video</p>
-                <p className="text-sm font-medium text-neutral-500">5-15 seconds of pure chaos</p>
+                <p className="text-sm font-medium text-neutral-500">5-{maxSeconds} seconds of pure chaos</p>
                 <p className="text-xs font-bold text-teal-500 mt-1">📱 Vertical (9:16) looks best!</p>
               </div>
             </motion.div>
@@ -353,8 +388,8 @@ export function UploadScreen() {
               onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
               onTimeUpdate={(e) => {
                 const video = e.currentTarget;
-                if (duration > 15) {
-                  if (video.currentTime >= trimStart + 15) {
+                if (duration > maxSeconds) {
+                  if (video.currentTime >= trimStart + maxSeconds) {
                     video.currentTime = trimStart;
                   } else if (video.currentTime < trimStart) {
                     video.currentTime = trimStart;
@@ -372,13 +407,13 @@ export function UploadScreen() {
           </div>
         )}
 
-        {/* Trimmer UI (only visible if duration > 15) */}
-        {videoUrl && duration > 15 && (
+        {/* Trimmer UI (only visible if the clip is longer than the cap) */}
+        {videoUrl && duration > maxSeconds && (
           <div className="mb-6">
             <div className="flex justify-between items-end mb-2">
-              <label className="block text-sm font-black text-neutral-800 uppercase tracking-wide">Trim Clip (15s Max)</label>
+              <label className="block text-sm font-black text-neutral-800 uppercase tracking-wide">Trim Clip ({maxSeconds}s Max)</label>
               <div className="text-xs font-bold bg-teal-100 text-teal-800 px-2 py-1 rounded-md">
-                {trimStart.toFixed(1)}s - {Math.min(duration, trimStart + 15).toFixed(1)}s
+                {trimStart.toFixed(1)}s - {Math.min(duration, trimStart + maxSeconds).toFixed(1)}s
               </div>
             </div>
             <div
@@ -397,7 +432,7 @@ export function UploadScreen() {
                 className="absolute top-0 bottom-0 bg-white/25 border-x-4 border-teal-400 z-10 flex items-center justify-center pointer-events-none"
                 style={{
                   left: `${(trimStart / duration) * 100}%`,
-                  width: `${(15 / duration) * 100}%`,
+                  width: `${(maxSeconds / duration) * 100}%`,
                   boxShadow: '0 0 0 9999px rgba(0,0,0,0.6)'
                 }}
               >
@@ -409,7 +444,7 @@ export function UploadScreen() {
               </div>
             </div>
             <p className="text-xs text-neutral-500 font-medium mt-2">
-              Press anywhere on the bar and slide to pick your best 15 seconds.
+              Press anywhere on the bar and slide to pick your best {maxSeconds} seconds.
             </p>
           </div>
         )}
@@ -498,7 +533,7 @@ export function UploadScreen() {
           <Info className="w-5 h-5 text-orange-400 shrink-0 mt-0.5" />
           <p className="text-xs text-orange-800 font-medium leading-relaxed">
             <span className="font-bold">Pro Tip:</span> Videos with good lighting and clear action get 40% more votes! <br/>
-            <span className="font-bold text-orange-900">Note:</span> Videos longer than 15 seconds will be automatically trimmed.
+            <span className="font-bold text-orange-900">Note:</span> Videos longer than {maxSeconds} seconds will be automatically trimmed.
           </p>
         </div>
 
@@ -551,21 +586,57 @@ export function UploadScreen() {
         </div>
       </div>
 
-      {/* Daily upload limit upsell */}
+      {/* Already-entered upsell: swapping your take is a Catnip Club perk */}
       {showUploadLimit && (
         <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/50 backdrop-blur-sm p-6">
           <div className="bg-white rounded-3xl p-6 w-full max-w-[340px] shadow-2xl text-center mb-4">
             <div className="text-4xl mb-3">🐱</div>
-            <h3 className="font-black text-xl text-neutral-800 mb-1">Daily Limit Reached</h3>
+            <h3 className="font-black text-xl text-neutral-800 mb-1">You're already in!</h3>
             <p className="text-sm text-neutral-500 mb-5 leading-relaxed">
-              Free fighters get <span className="font-bold text-pink-500">1 upload per day</span>. Upgrade to Catnip Club for 3 daily entries, glowing borders, and priority matchmaking!
+              Your entry for this theme is locked in. <span className="font-bold text-amber-500">Catnip Club</span> members
+              can swap in a better take any time before voting closes — plus add a second cat and film up to 30 seconds.
             </p>
             <div className="space-y-3">
+              <button
+                onClick={() => { setShowUploadLimit(false); navigate('/premium'); }}
+                className="w-full py-3 rounded-2xl font-black bg-gradient-to-r from-amber-400 to-orange-500 text-white active:scale-95 transition-transform shadow-md"
+              >
+                See Catnip Club
+              </button>
               <button
                 onClick={() => { setShowUploadLimit(false); }}
                 className="w-full py-3 rounded-2xl font-bold bg-neutral-100 text-neutral-600 active:scale-95 transition-transform"
               >
-                Maybe Tomorrow
+                Not Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Monthly allowance used up */}
+      {showMonthlyLimit && (
+        <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/50 backdrop-blur-sm p-6">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-[340px] shadow-2xl text-center mb-4">
+            <div className="text-4xl mb-3">🏆</div>
+            <h3 className="font-black text-xl text-neutral-800 mb-1">That's your {FREE_UPLOADS_PER_MONTH} for the month</h3>
+            <p className="text-sm text-neutral-500 mb-5 leading-relaxed">
+              Your free entries reset on <span className="font-bold text-neutral-700">{nextResetLabel()}</span>.
+              <span className="font-bold text-amber-500"> Catnip Club</span> members enter every single theme —
+              plus early access, a second cat, and 30-second clips.
+            </p>
+            <div className="space-y-3">
+              <button
+                onClick={() => { setShowMonthlyLimit(false); navigate('/premium'); }}
+                className="w-full py-3 rounded-2xl font-black bg-gradient-to-r from-amber-400 to-orange-500 text-white active:scale-95 transition-transform shadow-md"
+              >
+                See Catnip Club
+              </button>
+              <button
+                onClick={() => { setShowMonthlyLimit(false); }}
+                className="w-full py-3 rounded-2xl font-bold bg-neutral-100 text-neutral-600 active:scale-95 transition-transform"
+              >
+                Maybe Later
               </button>
             </div>
           </div>

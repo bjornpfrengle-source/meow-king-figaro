@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type RefObject } from 'react';
 import { motion } from 'motion/react';
 import { Clock, Play, ChevronRight, Sparkles, Gift, Bell, TrendingUp, MessageCircle, Share2, Plus, Star, Flame, PawPrint, Loader2, Flag, ShieldCheck, Maximize2, Heart, Megaphone } from 'lucide-react';
 import { CommentsSheet } from '../components/CommentsSheet';
@@ -145,7 +145,7 @@ export function HomeScreen() {
     else if (v.requestFullscreen) v.requestFullscreen();
   };
 
-  const enterFullscreen = (ref: React.RefObject<HTMLVideoElement>, trimStart: number = 0) => {
+  const enterFullscreen = (ref: RefObject<HTMLVideoElement>, trimStart: number = 0) => {
     playFullscreen(ref.current, trimStart);
   };
 

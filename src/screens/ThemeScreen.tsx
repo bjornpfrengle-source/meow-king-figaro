@@ -1,10 +1,12 @@
-import { Clock, Sparkles, AlertCircle, Camera, Loader2 } from 'lucide-react';
+import { Clock, Sparkles, AlertCircle, Camera, Loader2, Lock, Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useThemes, Countdown } from '../components/themes';
+import { useThemes, Countdown, isThemeRevealed, freeRevealAtMs } from '../components/themes';
+import { useFirebase } from '../components/FirebaseProvider';
 
 export function ThemeScreen() {
   const navigate = useNavigate();
-  const { active, upcoming, loading } = useThemes();
+  const { active, upcoming, loading, nowMs } = useThemes();
+  const { isPremium } = useFirebase();
 
   return (
     <div className="flex-1 bg-[#FFF5F5] flex flex-col overflow-y-auto pb-24 relative">
@@ -66,12 +68,49 @@ export function ThemeScreen() {
                 { card: 'bg-purple-50 border-purple-100', label: 'text-purple-400', clock: 'text-purple-300', pill: 'bg-purple-100 text-purple-500' },
               ];
               const p = palettes[i % palettes.length];
+
+              // Early access: members see what's coming days ahead so they have
+              // time to actually film it. Everyone else gets 12 hours' notice.
+              if (!isThemeRevealed(t, isPremium, nowMs)) {
+                return (
+                  <div key={t.id} className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-[2rem] p-6 shadow-sm relative overflow-hidden">
+                    <div className="absolute -top-8 -right-8 w-32 h-32 bg-amber-300/30 rounded-full blur-3xl pointer-events-none" />
+                    <div className="relative z-10">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Lock className="w-4 h-4 text-amber-500" />
+                        <span className="font-bold text-amber-600 tracking-wide uppercase text-sm">Locked Challenge</span>
+                      </div>
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="h-7 flex-1 rounded-lg bg-amber-200/60" />
+                        <div className="h-7 w-12 rounded-lg bg-amber-200/40" />
+                      </div>
+                      <p className="text-amber-800/80 font-medium mb-4 text-sm leading-relaxed">
+                        Catnip Club members can already see this one — and have {Math.max(1, Math.round((t.startMs - nowMs) / 3600000))}h
+                        to get filming. It unlocks for everyone <Countdown toMs={freeRevealAtMs(t)} className="font-bold" /> from now.
+                      </p>
+                      <button
+                        onClick={() => navigate('/premium')}
+                        className="w-full bg-gradient-to-r from-amber-400 to-orange-500 text-white font-black py-3 rounded-2xl flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-md"
+                      >
+                        <Crown className="w-5 h-5" />
+                        Unlock Early Access
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
+
               return (
                 <div key={t.id} className={`${p.card} border-2 rounded-[2rem] p-6 text-neutral-800 shadow-sm relative overflow-hidden`}>
                   <div className="relative z-10">
                     <div className="flex items-center gap-2 mb-2">
                       <Clock className={`w-4 h-4 ${p.clock}`} />
                       <span className={`font-bold ${p.label} tracking-wide uppercase text-sm`}>Upcoming Challenge</span>
+                      {isPremium && t.startMs - nowMs > 12 * 60 * 60 * 1000 && (
+                        <span className="ml-auto flex items-center gap-1 text-[10px] font-black bg-amber-400 text-white px-2 py-0.5 rounded-full uppercase tracking-wide">
+                          <Crown className="w-3 h-3" /> Early
+                        </span>
+                      )}
                     </div>
                     <h2 className="text-2xl font-black mb-2 leading-tight text-neutral-800">{t.title}</h2>
                     <p className="text-neutral-500 font-medium mb-4 text-sm">{t.description}</p>
@@ -96,7 +135,10 @@ export function ThemeScreen() {
         <div className="bg-white rounded-3xl p-5 shadow-sm border border-red-50 space-y-4">
           <div className="flex gap-3">
             <div className="w-8 h-8 rounded-full bg-teal-50 flex items-center justify-center flex-shrink-0 text-teal-500 font-black">1</div>
-            <p className="text-sm font-medium text-neutral-600 pt-1">Video must be under 15 seconds.</p>
+            <p className="text-sm font-medium text-neutral-600 pt-1">
+              Video must be under 15 seconds{' '}
+              <span className="text-amber-600 font-bold">(30s for Catnip Club)</span>.
+            </p>
           </div>
           <div className="flex gap-3">
             <div className="w-8 h-8 rounded-full bg-teal-50 flex items-center justify-center flex-shrink-0 text-teal-500 font-black">2</div>

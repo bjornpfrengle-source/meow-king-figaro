@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Camera, Save, Loader2, LogOut } from 'lucide-react';
+import { X, Camera, Save, Loader2, LogOut, Crown, Lock } from 'lucide-react';
 import { doc, setDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import { User } from 'firebase/auth';
@@ -94,7 +94,7 @@ export function SettingsModal({ isOpen, onClose, userProfile, currentUser, onUpd
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeThumbnailField, setActiveThumbnailField] = useState<'catThumbnailUrl' | 'catThumbnailUrl2' | null>(null);
-  const { logOut } = useFirebase();
+  const { logOut, isPremium } = useFirebase();
   const navigate = useNavigate();
 
   const handleLogOut = async () => {
@@ -316,10 +316,42 @@ export function SettingsModal({ isOpen, onClose, userProfile, currentUser, onUpd
                   </div>
                 </div>
 
+                {!isPremium ? (
+                  <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-4 rounded-2xl border-2 border-amber-200 relative overflow-hidden">
+                    <div className="absolute -top-6 -right-6 w-24 h-24 bg-amber-300/30 rounded-full blur-2xl pointer-events-none" />
+                    <div className="relative flex items-start gap-3">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-300 to-orange-400 flex items-center justify-center shrink-0 shadow-md">
+                        <Lock className="w-5 h-5 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-black text-amber-900 text-sm mb-1 flex items-center gap-1.5">
+                          Second Cat
+                          <span className="text-[10px] font-black bg-amber-400 text-white px-2 py-0.5 rounded-full uppercase tracking-wide">
+                            Catnip Club
+                          </span>
+                        </h3>
+                        <p className="text-xs font-medium text-amber-800/80 leading-relaxed mb-3">
+                          Got more than one troublemaker? Catnip Club members can add a second cat
+                          and enter them both in the arena.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => { onClose(); navigate('/premium'); }}
+                          className="w-full bg-gradient-to-r from-amber-400 to-orange-500 text-white py-2.5 rounded-xl font-black text-sm flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-md"
+                        >
+                          <Crown className="w-4 h-4" /> See Catnip Club
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
                 <div className="bg-pink-50/50 p-4 rounded-2xl space-y-4 border border-pink-100">
-                  <h3 className="font-black text-pink-800 text-sm">Second Cat (Optional)</h3>
+                  <h3 className="font-black text-pink-800 text-sm flex items-center gap-1.5">
+                    Second Cat (Optional)
+                    <Crown className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                  </h3>
                   <div className="flex items-center gap-4">
-                    <div 
+                    <div
                       onClick={() => { setActiveThumbnailField('catThumbnailUrl2'); fileInputRef.current?.click(); }}
                       className="w-16 h-16 rounded-xl overflow-hidden border-2 border-pink-100 bg-neutral-200 cursor-pointer relative group shrink-0"
                     >
@@ -358,6 +390,7 @@ export function SettingsModal({ isOpen, onClose, userProfile, currentUser, onUpd
                     </div>
                   </div>
                 </div>
+                )}
 
                 <div>
                   <label className="block text-xs font-bold text-neutral-500 mb-1.5 uppercase tracking-wider">Social Media Handle</label>

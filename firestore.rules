@@ -39,7 +39,7 @@ service cloud.firestore {
     // Domain Validators
     // ===============================================================
     function isValidUser() {
-      return hasOnlyAllowedFields(['uid', 'displayName', 'photoURL', 'role', 'socialHandle', 'bio', 'catName', 'catBreed', 'catAge', 'battleCry', 'catName2', 'battleCry2', 'catThumbnailUrl', 'catThumbnailUrl2', 'allowRepost', 'banned', 'bannedAt', 'bannedBy', 'badges', 'blockedUserIds']) &&
+      return hasOnlyAllowedFields(['uid', 'displayName', 'photoURL', 'role', 'socialHandle', 'bio', 'catName', 'catBreed', 'catAge', 'battleCry', 'catName2', 'battleCry2', 'catThumbnailUrl', 'catThumbnailUrl2', 'allowRepost', 'banned', 'bannedAt', 'bannedBy', 'badges', 'blockedUserIds', 'isPremium', 'species', 'isFoundingMember', 'createdAt']) &&
              request.resource.data.uid == request.auth.uid &&
              isValidOptionalString('displayName', 0, 100) &&
              isValidOptionalString('photoURL', 0, 1048576) &&
@@ -121,11 +121,18 @@ service cloud.firestore {
     // ===============================================================
     match /users/{userId} {
       allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && isOwner(userId) && isValidUser() && request.resource.data.role == 'user';
-      // Owner may edit their own profile but cannot change their role or ban status
+      // New accounts always start free — nobody can self-grant Catnip Club on create
+      allow create: if isAuthenticated() && isOwner(userId) && isValidUser() &&
+                    request.resource.data.role == 'user' &&
+                    request.resource.data.get('isPremium', false) == false;
+      // Owner may edit their own profile but cannot change their role, ban status,
+      // or premium standing. isPremium is set by admins / the billing webhook only —
+      // without this line any user could unlock every paid feature from the client.
       allow update: if isAuthenticated() && isOwner(userId) && isValidUser() &&
                     request.resource.data.role == resource.data.role &&
-                    request.resource.data.get('banned', false) == resource.data.get('banned', false);
+                    request.resource.data.get('banned', false) == resource.data.get('banned', false) &&
+                    request.resource.data.get('isPremium', false) == resource.data.get('isPremium', false) &&
+                    request.resource.data.get('isFoundingMember', false) == resource.data.get('isFoundingMember', false);
       // Admins may update any user (assign roles, ban, unban)
       allow update: if isAdmin();
     }

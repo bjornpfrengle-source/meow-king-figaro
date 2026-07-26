@@ -5,6 +5,7 @@ import { collection, addDoc, deleteDoc, doc, serverTimestamp, Timestamp } from '
 import { db } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
 import { useThemes } from '../components/themes';
+import { APP_SPECIES } from '../components/species';
 import { ConfirmModal } from '../components/ConfirmModal';
 
 function slugify(title: string) {
@@ -49,6 +50,7 @@ export function ThemeAdminScreen() {
         slug: slugify(title),
         description: description.trim(),
         type,
+        species: APP_SPECIES,
         startAt: Timestamp.fromDate(startDate),
         endAt: Timestamp.fromDate(endDate),
         createdAt: serverTimestamp(),

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
+import { Species, toSpecies, APP_SPECIES } from './species';
 
 export interface Theme {
   id: string;
@@ -10,6 +11,30 @@ export interface Theme {
   type: 'daily' | 'weekly' | 'surprise';
   startMs: number;
   endMs: number;
+  species: Species;
+}
+
+/**
+ * Early theme access — the headline Catnip Club perk.
+ *
+ * Catching your cat mid-zoomie takes time, so knowing the theme in advance is
+ * genuinely valuable. Members get three days to plan and film; everyone else
+ * still gets half a day's notice, so the free tier is a shorter run-up rather
+ * than a locked door.
+ */
+export const PREMIUM_PREVIEW_MS = 72 * 60 * 60 * 1000; // 3 days
+export const FREE_PREVIEW_MS = 12 * 60 * 60 * 1000; // 12 hours
+
+/** Can this user see the details of an upcoming theme yet? */
+export function isThemeRevealed(theme: Theme, isPremium: boolean, nowMs: number = Date.now()) {
+  if (theme.startMs <= nowMs) return true; // live themes are always visible
+  const lead = isPremium ? PREMIUM_PREVIEW_MS : FREE_PREVIEW_MS;
+  return theme.startMs - nowMs <= lead;
+}
+
+/** When a free user will be able to see this theme (used for the upsell countdown). */
+export function freeRevealAtMs(theme: Theme) {
+  return theme.startMs - FREE_PREVIEW_MS;
 }
 
 /**
@@ -36,6 +61,7 @@ export function useThemes() {
             type: data.type || 'daily',
             startMs: data.startAt?.toMillis ? data.startAt.toMillis() : 0,
             endMs: data.endAt?.toMillis ? data.endAt.toMillis() : 0,
+            species: toSpecies(data.species),
           };
         });
         setThemes(list);
@@ -51,10 +77,15 @@ export function useThemes() {
     return () => clearInterval(t);
   }, []);
 
-  const active = themes.find((t) => t.startMs <= nowMs && t.endMs > nowMs) || null;
-  const upcoming = themes.filter((t) => t.startMs > nowMs);
+  // Only surface themes belonging to this build's arena. Today every theme is
+  // 'cat', so this is a no-op — but it's what lets a dog/bird build share this
+  // codebase and this Firestore collection without seeing each other's themes.
+  const inArena = themes.filter((t) => t.species === APP_SPECIES);
 
-  return { active, upcoming, themes, loading };
+  const active = inArena.find((t) => t.startMs <= nowMs && t.endMs > nowMs) || null;
+  const upcoming = inArena.filter((t) => t.startMs > nowMs);
+
+  return { active, upcoming, themes: inArena, loading, nowMs };
 }
 
 /** A ticking countdown to a target time (ms since epoch). */

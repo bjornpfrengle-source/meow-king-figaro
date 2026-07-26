@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type RefObject } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MessageCircle, PawPrint, Loader2, Flag, Maximize2 } from 'lucide-react';
 import { CommentsSheet } from '../components/CommentsSheet';
@@ -48,7 +48,7 @@ export function VoteScreen() {
   const video1Ref = useRef<HTMLVideoElement>(null);
   const video2Ref = useRef<HTMLVideoElement>(null);
 
-  const enterFullscreen = (ref: React.RefObject<HTMLVideoElement>, trimStart: number = 0) => {
+  const enterFullscreen = (ref: RefObject<HTMLVideoElement>, trimStart: number = 0) => {
     const v = ref.current as any;
     if (!v) return;
     // Restart from the beginning and turn sound on for fullscreen viewing

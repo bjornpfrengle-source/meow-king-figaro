@@ -11,3 +11,11 @@ uploads/
 
 # Firebase service account key (never commit)
 serviceAccountKey.json
+
+# App Store preview reel working files.
+# raw-capture.mov is ~550MB — GitHub hard-rejects any file over 100MB, so
+# committing it would fail the push outright. The finished reel and clean clips
+# live here too; they're build artefacts, not source.
+raw-capture.mov
+reel/
+
