@@ -292,7 +292,14 @@ export function UploadScreen() {
       setStage('Finishing up…');
       const fileId = Date.now().toString() + Math.random().toString(36).substring(7);
       const storageRef = ref(storage, `videos/${currentUser.uid}/${fileId}.mp4`);
-      await uploadBytes(storageRef, processedBlob, { contentType: 'video/mp4' });
+      await uploadBytes(storageRef, processedBlob, {
+        contentType: 'video/mp4',
+        // A clip never changes once uploaded, so let browsers and Google's edge
+        // cache it forever. Without this header every single view re-downloads
+        // the whole file from the us-central1 bucket — which is what our egress
+        // bill was actually made of, not storage.
+        cacheControl: 'public, max-age=31536000, immutable',
+      });
       const downloadUrl = await getDownloadURL(storageRef);
 
       const theme = themeSlug;

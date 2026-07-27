@@ -48,7 +48,12 @@ export function OnboardingScreen() {
         let thumbnailUrl = '';
         if (catPhotoFile) {
           const storageRef = ref(storage, `thumbnails/${user.uid}_${Date.now()}`);
-          await uploadBytes(storageRef, catPhotoFile);
+          await uploadBytes(storageRef, catPhotoFile, {
+            contentType: catPhotoFile.type || 'image/jpeg',
+            // Filename is timestamped, so this object is immutable — cache it
+            // hard rather than re-fetching the avatar on every screen render.
+            cacheControl: 'public, max-age=31536000, immutable',
+          });
           thumbnailUrl = await getDownloadURL(storageRef);
         }
 
