@@ -5,6 +5,7 @@ import fs from "fs";
 import multer from "multer";
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegStatic from "ffmpeg-static";
+import { GoogleGenAI } from "@google/genai";
 
 // Prefer the bundled static binary; fall back to system ffmpeg (installed via nixpacks)
 let ffmpegPath: string = (ffmpegStatic as unknown as string) || "ffmpeg";
@@ -12,6 +13,48 @@ if (ffmpegPath !== "ffmpeg" && !fs.existsSync(ffmpegPath)) {
   ffmpegPath = "ffmpeg";
 }
 ffmpeg.setFfmpegPath(ffmpegPath);
+
+// --- Content moderation -----------------------------------------------
+// Every uploaded clip gets one frame checked against Gemini before it's
+// allowed to publish. This is a still-frame check, not full-video scanning —
+// cheap and fast, and it catches the obvious stuff (nudity, gore, weapons).
+// It deliberately fails OPEN: if there's no API key configured, or the
+// Gemini call itself errors (rate limit, outage), the upload is allowed
+// through rather than blocking real users because of our infrastructure.
+const genAI = process.env.GEMINI_API_KEY ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }) : null;
+if (!genAI) {
+  console.warn("GEMINI_API_KEY not set — upload content moderation is DISABLED.");
+}
+
+const MODERATION_PROMPT = `You are a content safety filter for a family-friendly pet video app where users upload short videos of their cats. This is a single frame extracted from an uploaded video.
+
+Respond with ONLY this JSON, no other text: {"safe": boolean, "reason": string}
+
+Mark safe:false ONLY if the image contains: nudity or sexual content, graphic violence or gore, real weapons used threateningly, or content clearly inappropriate for a general/family audience.
+
+Cats and other pets behaving chaotically, playfully, or even looking silly or gross in a normal pet way (vomiting, play-fighting, a litter box, etc.) are always safe:true. Humans briefly in frame are fine unless the image itself is explicit or violent. If genuinely uncertain, default to safe:true — this filter should catch clear violations, not borderline cases.`;
+
+async function moderateFrame(imagePath: string): Promise<{ safe: boolean; reason?: string }> {
+  if (!genAI) return { safe: true };
+  try {
+    const base64 = fs.readFileSync(imagePath).toString("base64");
+    const response = await genAI.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: MODERATION_PROMPT }, { inlineData: { mimeType: "image/jpeg", data: base64 } }],
+        },
+      ],
+      config: { responseMimeType: "application/json" },
+    });
+    const parsed = JSON.parse((response.text || "{}").trim());
+    return { safe: parsed.safe !== false, reason: parsed.reason };
+  } catch (err) {
+    console.error("Moderation check failed, allowing upload through (fail-open):", err);
+    return { safe: true };
+  }
+}
 
 async function startServer() {
   const app = express();
@@ -68,6 +111,34 @@ async function startServer() {
           .on("error", (err) => reject(err))
           .save(outputPath);
       });
+
+      // Grab one frame from the trimmed clip and run it past Gemini before
+      // this video is allowed to go live to every user in the app.
+      const thumbPath = path.join(os.tmpdir(), `thumb_${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`);
+      try {
+        await new Promise<void>((resolve, reject) => {
+          ffmpeg(outputPath)
+            .seekInput(0.3)
+            .frames(1)
+            .output(thumbPath)
+            .on("end", () => resolve())
+            .on("error", (err) => reject(err))
+            .run();
+        });
+        const verdict = await moderateFrame(thumbPath);
+        fs.unlink(thumbPath, () => {});
+        if (!verdict.safe) {
+          cleanup();
+          res.status(422).json({
+            error: "moderation_failed",
+            message: verdict.reason || "This video doesn't meet our community guidelines.",
+          });
+          return;
+        }
+      } catch (modErr) {
+        console.error("Thumbnail/moderation step failed, allowing upload through (fail-open):", modErr);
+        fs.unlink(thumbPath, () => {});
+      }
 
       res.setHeader("Content-Type", "video/mp4");
       const stream = fs.createReadStream(outputPath);

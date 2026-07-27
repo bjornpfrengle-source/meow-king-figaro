@@ -534,7 +534,7 @@ export function HomeScreen() {
                   <Star className="w-6 h-6 text-amber-400 fill-amber-400" />
                   Kitty Kingdom
                 </h3>
-                <p className="text-xs font-bold text-neutral-400 mt-0.5">Today's featured cats · refreshes daily</p>
+                <p className="text-xs font-black mt-0.5 bg-gradient-to-r from-pink-500 via-fuchsia-500 to-orange-400 bg-clip-text text-transparent">Today's featured cats · refreshes daily</p>
               </div>
             </div>
 
@@ -549,6 +549,73 @@ export function HomeScreen() {
               ];
               return kingdomCats.map((cat, i) => {
                 const p = KP[i % KP.length];
+                // Cat2 only exists for Catnip Club members. Most cards are single-cat,
+                // so that's the primary design — full-bleed photo like a real feature
+                // card — rather than a quadrant layout with an empty placeholder half.
+                const hasCat2 = !!(cat.catImg2 || cat.catName2);
+                const heartBtn = (
+                  <motion.button
+                    whileTap={{ scale: 0.7 }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setKingdomLikes(prev => ({ ...prev, [cat.id]: !prev[cat.id] }));
+                    }}
+                    className="absolute top-3 left-3 w-9 h-9 rounded-full flex items-center justify-center shadow-sm bg-black/40 backdrop-blur-sm z-10"
+                  >
+                    <Heart className={`w-4 h-4 transition-colors ${kingdomLikes[cat.id] ? 'fill-pink-500 text-pink-500' : 'text-white'}`} />
+                  </motion.button>
+                );
+                const ownerBadge = (
+                  <div className="absolute top-3 right-3 flex flex-col items-center gap-1 z-10">
+                    <div className="p-[3px] rounded-full shadow-lg" style={{ background: `linear-gradient(135deg, ${p.ringA}, ${p.ringB})` }}>
+                      {cat.ownerImg ? (
+                        <img src={cat.ownerImg} alt="" className="w-11 h-11 rounded-full object-cover border-2 border-white" referrerPolicy="no-referrer" />
+                      ) : (
+                        <div className="w-11 h-11 rounded-full flex items-center justify-center text-lg bg-white/90 border-2 border-white">😺</div>
+                      )}
+                    </div>
+                    {cat.ownerHandle && (
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-black/50 text-white backdrop-blur-sm">@{cat.ownerHandle}</span>
+                    )}
+                  </div>
+                );
+
+                if (!hasCat2) {
+                  return (
+                    <motion.div
+                      key={cat.id}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.04 }}
+                      onClick={() => setKingdomVideo(cat)}
+                      className="min-w-[calc(100%-32px)] h-[300px] flex-shrink-0 snap-start cursor-pointer rounded-[2rem] overflow-hidden relative active:scale-[0.985] transition-transform"
+                      style={{
+                        border: `4px solid ${p.border}`,
+                        boxShadow: `0 16px 48px -8px ${p.shadow}, 0 4px 16px -4px ${p.shadow}`,
+                      }}
+                    >
+                      {cat.catImg ? (
+                        <img src={cat.catImg} alt={cat.name} className="absolute inset-0 w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center text-7xl" style={{ backgroundColor: p.emptyBg }}>🐱</div>
+                      )}
+
+                      {/* Bottom scrim so name/cry stay legible over any photo */}
+                      <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/80 via-black/25 to-transparent pointer-events-none" />
+
+                      {heartBtn}
+                      {ownerBadge}
+
+                      <div className="absolute bottom-0 left-0 right-0 p-5 z-10">
+                        <p className="font-black text-2xl leading-tight text-white drop-shadow-md">{cat.name}</p>
+                        {cat.cry && (
+                          <p className="text-sm italic leading-snug text-white/90 mt-1 line-clamp-2 drop-shadow-md">"{cat.cry}"</p>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                }
+
                 return (
                   <motion.div
                     key={cat.id}
@@ -597,11 +664,7 @@ export function HomeScreen() {
 
                     {/* BOTTOM-LEFT: cat 2 name */}
                     <div className="absolute bottom-0 left-0 w-[52%] h-[50%] flex flex-col items-start justify-center pb-2 pl-4 pr-3">
-                      {cat.catName2 ? (
-                        <p className="font-black text-2xl leading-tight" style={{ color: p.nameTxt }}>{cat.catName2}</p>
-                      ) : (
-                        <span className="text-xs font-bold italic" style={{ color: p.cryTxt, opacity: 0.5 }}>—</span>
-                      )}
+                      <p className="font-black text-2xl leading-tight" style={{ color: p.nameTxt }}>{cat.catName2}</p>
                     </div>
 
                     {/* CENTER: user avatar + handle + heart */}
@@ -627,11 +690,6 @@ export function HomeScreen() {
                       >
                         <Heart className={`w-4 h-4 transition-colors ${kingdomLikes[cat.id] ? 'fill-pink-500 text-pink-500' : ''}`} style={!kingdomLikes[cat.id] ? { color: p.border } : {}} />
                       </motion.button>
-                    </div>
-
-                    {/* Featured badge */}
-                    <div className="absolute top-3 left-3 text-[10px] font-black px-2.5 py-1 rounded-full flex items-center gap-1 z-10 shadow-sm" style={{ backgroundColor: p.handleBg, color: p.nameTxt, border: `1.5px solid ${p.border}` }}>
-                      <Star className="w-3 h-3" style={{ fill: p.nameTxt, color: p.nameTxt }} /> Featured
                     </div>
                   </motion.div>
                 );

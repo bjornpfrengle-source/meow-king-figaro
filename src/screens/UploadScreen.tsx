@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { ChevronLeft, ChevronRight, Upload, Sparkles, Info, Loader2 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { collection, addDoc, serverTimestamp, doc, getDoc, query, where, getDocs, deleteDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { auth, db, storage } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
 import { useThemes } from '../components/themes';
@@ -263,6 +263,17 @@ export function UploadScreen() {
         xhr.onload = () => {
           if (xhr.status === 200 && xhr.response) {
             resolve(xhr.response as Blob);
+          } else if (xhr.status === 422 && xhr.response instanceof Blob) {
+            // Content moderation rejected this clip — surface the real reason
+            // instead of the generic "couldn't process" message.
+            (xhr.response as Blob).text().then((txt) => {
+              try {
+                const parsed = JSON.parse(txt);
+                reject(new Error(parsed.message || 'This video doesn’t meet our community guidelines.'));
+              } catch {
+                reject(new Error('This video doesn’t meet our community guidelines.'));
+              }
+            }).catch(() => reject(new Error('This video doesn’t meet our community guidelines.')));
           } else {
             reject(new Error('We couldn’t process that video. Please try another clip.'));
           }
@@ -296,7 +307,20 @@ export function UploadScreen() {
           where('theme', '==', theme)
         );
         const existingSnap = await getDocs(existingQ);
-        await Promise.all(existingSnap.docs.map((d) => deleteDoc(doc(db, 'cats', d.id))));
+        // Delete the old clip from Storage too, not just the Firestore doc —
+        // otherwise every swap (a Catnip Club perk we just built) leaves an
+        // orphaned video behind forever, quietly costing bandwidth/storage.
+        await Promise.all(existingSnap.docs.map(async (d) => {
+          const oldVideoUrl = d.data().videoUrl as string | undefined;
+          await deleteDoc(doc(db, 'cats', d.id));
+          if (oldVideoUrl) {
+            try {
+              await deleteObject(ref(storage, oldVideoUrl));
+            } catch (e) {
+              console.warn('Could not delete old clip from Storage (non-fatal):', e);
+            }
+          }
+        }));
       } catch (e) {
         console.error('Could not clear previous entry:', e);
       }

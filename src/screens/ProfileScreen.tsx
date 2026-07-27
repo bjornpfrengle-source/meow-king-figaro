@@ -5,6 +5,7 @@ import { CommentsSheet } from '../components/CommentsSheet';
 import { DIGITAL_REWARDS } from '../components/rewards';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, where, orderBy, getDocs, doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { ref, deleteObject } from 'firebase/storage';
 import { auth, db, storage } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
 import { SettingsModal } from '../components/SettingsModal';
@@ -50,9 +51,17 @@ export function ProfileScreen() {
   const performDelete = async () => {
     if (!confirmDelete) return;
     const { id } = confirmDelete;
+    const videoUrl = myCats.find((c) => c.id === id)?.videoUrl;
     setDeleting(true);
     try {
       await deleteDoc(doc(db, 'cats', id));
+      if (videoUrl) {
+        try {
+          await deleteObject(ref(storage, videoUrl));
+        } catch (e) {
+          console.warn('Could not delete clip from Storage (non-fatal):', e);
+        }
+      }
       setMyCats((prev) => prev.filter((c) => c.id !== id));
     } catch (error) {
       console.error('Error deleting entry:', error);
