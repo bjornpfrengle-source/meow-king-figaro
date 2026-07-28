@@ -30,6 +30,7 @@ interface KingdomCat {
   catImg?: string;
   catImg2?: string;
   catName2?: string;
+  cry2?: string;
   score: number;
   ownerId: string;
   ownerName: string;
@@ -208,6 +209,7 @@ export function HomeScreen() {
           let catImg: string | undefined = cat.thumbnailUrl;
           let catImg2: string | undefined;
           let catName2: string | undefined;
+          let cry2: string | undefined;
           try {
             const uDoc = await getDoc(doc(db, 'users', cat.ownerId));
             if (uDoc.exists()) {
@@ -218,6 +220,7 @@ export function HomeScreen() {
               if (u.catThumbnailUrl) catImg = u.catThumbnailUrl;
               if (u.catThumbnailUrl2) catImg2 = u.catThumbnailUrl2;
               if (u.catName2) catName2 = u.catName2;
+              if (u.battleCry2) cry2 = u.battleCry2;
             }
           } catch (_) {}
           return {
@@ -229,6 +232,7 @@ export function HomeScreen() {
             catImg,
             catImg2,
             catName2,
+            cry2,
             score: cat.score || 0,
             ownerId: cat.ownerId,
             ownerName,
@@ -662,9 +666,12 @@ export function HomeScreen() {
                       )}
                     </div>
 
-                    {/* BOTTOM-LEFT: cat 2 name */}
+                    {/* BOTTOM-LEFT: cat 2 name + battle cry */}
                     <div className="absolute bottom-0 left-0 w-[52%] h-[50%] flex flex-col items-start justify-center pb-2 pl-4 pr-3">
                       <p className="font-black text-2xl leading-tight" style={{ color: p.nameTxt }}>{cat.catName2}</p>
+                      {cat.cry2 && (
+                        <p className="text-sm italic leading-snug mt-2 line-clamp-3" style={{ color: p.cryTxt }}>"{cat.cry2}"</p>
+                      )}
                     </div>
 
                     {/* CENTER: user avatar + handle + heart */}
