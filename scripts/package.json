@@ -1,0 +1,9 @@
+{
+  "name": "cat-chaos-arena-admin-scripts",
+  "private": true,
+  "type": "module",
+  "description": "Standalone deps for one-off maintenance scripts. Deliberately isolated from the root package.json/package-lock.json — these tools never run on Railway, so keeping them out of the app's dependency tree means they can never again cause a build to fail there (see the Cache Storage assets commit for why that matters).",
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  }
+}
