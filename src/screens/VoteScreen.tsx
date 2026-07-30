@@ -21,6 +21,12 @@ interface Cat {
   framePosition?: number;
 }
 
+// Demo clips ship inside the app (public/) rather than being hotlinked from a
+// third-party host, so they can't break if that host changes and there's no
+// question of redistributing someone else's content in a store build.
+const DEMO_VIDEO_1 = '/demo-cat-1.mp4';
+const DEMO_VIDEO_2 = '/demo-cat-2.mp4';
+
 const FALLBACK_PAIRS = [
   {
     id: 1,
@@ -28,7 +34,7 @@ const FALLBACK_PAIRS = [
       id: 'fallback_1',
       name: 'Mittens',
       cry: '"If I fits, I sits"',
-      videoUrl: 'https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.mp4',
+      videoUrl: DEMO_VIDEO_1,
       score: 0,
       ownerId: 'system'
     },
@@ -36,7 +42,7 @@ const FALLBACK_PAIRS = [
       id: 'fallback_2',
       name: 'Luna',
       cry: '"Box destroyer 3000"',
-      videoUrl: 'https://media.giphy.com/media/mlvseq9yvZhba/giphy.mp4',
+      videoUrl: DEMO_VIDEO_2,
       score: 0,
       ownerId: 'system'
     }
@@ -262,36 +268,57 @@ export function VoteScreen() {
   // screen, make the vacancy itself the call to action.
   if (!currentPair) {
     return (
-      <div className="flex-1 bg-neutral-900 flex flex-col items-center justify-center px-8 text-center">
-        <div className="text-6xl mb-5">🏟️</div>
-        {active ? (
-          <>
-            <h2 className="text-white font-black text-2xl leading-tight mb-2">
-              The arena's empty
-            </h2>
-            <p className="text-white/60 text-sm leading-relaxed mb-1">
-              No cats have entered <span className="font-bold text-pink-400">{active.title}</span> yet.
-            </p>
-            <p className="text-white/60 text-sm leading-relaxed mb-7">
-              Be the first — every battle starts fresh each day.
-            </p>
-            <button
-              onClick={() => navigate(`/upload?event=${active.slug}`)}
-              className="bg-gradient-to-br from-pink-500 to-orange-400 text-white font-black text-lg px-8 py-4 rounded-2xl shadow-lg shadow-pink-500/30 active:scale-95 transition-transform"
-            >
-              Enter your cat
-            </button>
-          </>
-        ) : (
-          <>
-            <h2 className="text-white font-black text-2xl leading-tight mb-2">
-              No battle running
-            </h2>
-            <p className="text-white/60 text-sm leading-relaxed">
-              There's no live theme right now. Check back soon!
-            </p>
-          </>
-        )}
+      <div className="flex-1 bg-neutral-900 relative overflow-hidden flex flex-col items-center justify-center px-8 text-center">
+        {/* Demo clips keep the arena feeling alive while it waits for its first
+            real entry. They sit behind a heavy scrim and have no vote buttons,
+            so they read as atmosphere rather than as cats you can vote on. */}
+        <div className="absolute inset-0 flex flex-col" aria-hidden="true">
+          {[DEMO_VIDEO_1, DEMO_VIDEO_2].map((src) => (
+            <video
+              key={src}
+              src={src}
+              className="flex-1 w-full object-cover"
+              autoPlay
+              loop
+              muted
+              playsInline
+              preload="metadata"
+            />
+          ))}
+        </div>
+        <div className="absolute inset-0 bg-neutral-900/80 backdrop-blur-[2px] pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col items-center">
+          <div className="text-6xl mb-5">🏟️</div>
+          {active ? (
+            <>
+              <h2 className="text-white font-black text-2xl leading-tight mb-2 drop-shadow-lg">
+                The arena's empty
+              </h2>
+              <p className="text-white/75 text-sm leading-relaxed mb-1 drop-shadow">
+                No cats have entered <span className="font-bold text-pink-400">{active.title}</span> yet.
+              </p>
+              <p className="text-white/75 text-sm leading-relaxed mb-7 drop-shadow">
+                Be the first — every battle starts fresh each day.
+              </p>
+              <button
+                onClick={() => navigate(`/upload?event=${active.slug}`)}
+                className="bg-gradient-to-br from-pink-500 to-orange-400 text-white font-black text-lg px-8 py-4 rounded-2xl shadow-lg shadow-pink-500/30 active:scale-95 transition-transform"
+              >
+                Enter your cat
+              </button>
+            </>
+          ) : (
+            <>
+              <h2 className="text-white font-black text-2xl leading-tight mb-2 drop-shadow-lg">
+                No battle running
+              </h2>
+              <p className="text-white/75 text-sm leading-relaxed drop-shadow">
+                There's no live theme right now. Check back soon!
+              </p>
+            </>
+          )}
+        </div>
       </div>
     );
   }
