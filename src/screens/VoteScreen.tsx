@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef, type RefObject } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { MessageCircle, PawPrint, Loader2, Flag, Maximize2 } from 'lucide-react';
 import { CommentsSheet } from '../components/CommentsSheet';
 import { ReportModal } from '../components/ReportModal';
-import { collection, getDocs, getDoc, doc, increment, serverTimestamp, query, orderBy, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, getDoc, doc, increment, serverTimestamp, query, orderBy, where, writeBatch } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
+import { useThemes } from '../components/themes';
 
 interface Cat {
   id: string;
@@ -43,6 +45,8 @@ const FALLBACK_PAIRS = [
 
 export function VoteScreen() {
   const { user, signIn } = useFirebase();
+  const { active, loading: themesLoading } = useThemes();
+  const navigate = useNavigate();
   const [activeCommentCatId, setActiveCommentCatId] = useState<string | null>(null);
   const [reportTarget, setReportTarget] = useState<{ id: string; name: string } | null>(null);
   const video1Ref = useRef<HTMLVideoElement>(null);
@@ -99,13 +103,28 @@ export function VoteScreen() {
         return;
       }
 
+      // Wait for the theme roster before querying — firing early would filter
+      // against an undefined slug and wrongly show an empty arena.
+      if (themesLoading) return;
+
+      // No live theme means no competition running right now.
+      if (!active) {
+        setPairs([]);
+        setCurrentPairIndex(0);
+        setLoading(false);
+        return;
+      }
+
       try {
-        const q = query(collection(db, 'cats'));
+        // Only entries submitted for TODAY'S theme may battle. Without this the
+        // arena accumulates every clip ever uploaded, so yesterday's cats keep
+        // competing forever and each new theme never gets a clean slate.
+        const q = query(collection(db, 'cats'), where('theme', '==', active.slug));
         const snapshot = await getDocs(q);
         const fetchedCats = snapshot.docs
           .map(doc => ({ id: doc.id, ...doc.data() } as Cat))
           .filter((c: any) => !!c.videoUrl); // only real video entries can battle
-        
+
         // Shuffle the cats array locally for random matchups
         for (let i = fetchedCats.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
@@ -130,12 +149,15 @@ export function VoteScreen() {
           setPairs(newPairs);
           setCurrentPairIndex(0);
         } else {
-          setPairs(FALLBACK_PAIRS);
+          // Nobody has entered today's theme yet — show the empty state that
+          // invites the first upload rather than demo cats, which would make a
+          // fresh theme look like it already has entries.
+          setPairs([]);
           setCurrentPairIndex(0);
         }
       } catch (error) {
         console.error('Error fetching cats:', error);
-        setPairs(FALLBACK_PAIRS);
+        setPairs([]);
         setCurrentPairIndex(0);
       } finally {
         setLoading(false);
@@ -143,7 +165,9 @@ export function VoteScreen() {
     };
 
     fetchCats();
-  }, [user]);
+    // Re-runs when the theme rolls over, so the arena refreshes itself at the
+    // daily changeover without needing an app restart.
+  }, [user, active?.slug, themesLoading]);
 
   const currentPair = pairs[currentPairIndex];
 
@@ -234,7 +258,43 @@ export function VoteScreen() {
     );
   }
 
-  if (!currentPair) return null;
+  // A fresh theme starts with an empty arena every day. Rather than a blank
+  // screen, make the vacancy itself the call to action.
+  if (!currentPair) {
+    return (
+      <div className="flex-1 bg-neutral-900 flex flex-col items-center justify-center px-8 text-center">
+        <div className="text-6xl mb-5">🏟️</div>
+        {active ? (
+          <>
+            <h2 className="text-white font-black text-2xl leading-tight mb-2">
+              The arena's empty
+            </h2>
+            <p className="text-white/60 text-sm leading-relaxed mb-1">
+              No cats have entered <span className="font-bold text-pink-400">{active.title}</span> yet.
+            </p>
+            <p className="text-white/60 text-sm leading-relaxed mb-7">
+              Be the first — every battle starts fresh each day.
+            </p>
+            <button
+              onClick={() => navigate(`/upload?event=${active.slug}`)}
+              className="bg-gradient-to-br from-pink-500 to-orange-400 text-white font-black text-lg px-8 py-4 rounded-2xl shadow-lg shadow-pink-500/30 active:scale-95 transition-transform"
+            >
+              Enter your cat
+            </button>
+          </>
+        ) : (
+          <>
+            <h2 className="text-white font-black text-2xl leading-tight mb-2">
+              No battle running
+            </h2>
+            <p className="text-white/60 text-sm leading-relaxed">
+              There's no live theme right now. Check back soon!
+            </p>
+          </>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 bg-neutral-900 relative overflow-hidden flex flex-col">
