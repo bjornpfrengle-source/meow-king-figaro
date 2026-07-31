@@ -263,19 +263,29 @@ export function UploadScreen() {
         xhr.onload = () => {
           if (xhr.status === 200 && xhr.response) {
             resolve(xhr.response as Blob);
-          } else if (xhr.status === 422 && xhr.response instanceof Blob) {
-            // Content moderation rejected this clip — surface the real reason
-            // instead of the generic "couldn't process" message.
-            (xhr.response as Blob).text().then((txt) => {
-              try {
-                const parsed = JSON.parse(txt);
-                reject(new Error(parsed.message || 'This video doesn’t meet our community guidelines.'));
-              } catch {
-                reject(new Error('This video doesn’t meet our community guidelines.'));
-              }
-            }).catch(() => reject(new Error('This video doesn’t meet our community guidelines.')));
+            return;
+          }
+          // Every error path on the server sends { error, message }. Read it
+          // and show the real reason — "please try another clip" tells someone
+          // nothing about whether their file was too big, the wrong format, or
+          // rejected by moderation.
+          const fallback =
+            xhr.status === 413
+              ? 'That video is too large to upload. Try a shorter recording.'
+              : 'We couldn’t process that video. Please try another clip.';
+          if (xhr.response instanceof Blob) {
+            (xhr.response as Blob)
+              .text()
+              .then((txt) => {
+                try {
+                  reject(new Error(JSON.parse(txt).message || fallback));
+                } catch {
+                  reject(new Error(fallback));
+                }
+              })
+              .catch(() => reject(new Error(fallback)));
           } else {
-            reject(new Error('We couldn’t process that video. Please try another clip.'));
+            reject(new Error(fallback));
           }
         };
         xhr.onerror = () => reject(new Error('Network error during upload. Please try again.'));

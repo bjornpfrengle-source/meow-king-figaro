@@ -7,18 +7,25 @@ service firebase.storage {
       // Download URLs are tokenized, so reads can be open for playback
       allow read: if true;
       // Only the signed-in owner may upload, videos only, max 500MB
-      allow write: if request.auth != null
+      allow create, update: if request.auth != null
                    && request.auth.uid == userId
                    && request.resource.size < 500 * 1024 * 1024
                    && request.resource.contentType.matches('video/.*');
+      // Delete needs its own rule. On a delete there is no incoming file, so
+      // request.resource is null — the size/contentType checks above cannot be
+      // evaluated and the delete is refused. That silently broke the cleanup
+      // that removes a user's old clip when they swap or delete an entry,
+      // leaving orphaned files in the bucket.
+      allow delete: if request.auth != null && request.auth.uid == userId;
     }
 
     // Cat thumbnail images
     match /thumbnails/{fileName} {
       allow read: if true;
-      allow write: if request.auth != null
+      allow create, update: if request.auth != null
                    && request.resource.size < 10 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
+      allow delete: if request.auth != null;
     }
 
     // Deny everything else by default

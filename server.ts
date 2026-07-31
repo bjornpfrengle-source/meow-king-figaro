@@ -60,10 +60,19 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  // Uploaded originals are streamed to a temp file, capped at 600MB
+  // Uploaded originals are streamed to a temp file. The whole point of this
+  // endpoint is that people shoot a long clip on their phone and we cut it down
+  // for them — so this ceiling only exists to stop absurd payloads, not to make
+  // users pre-trim anything.
+  const MAX_UPLOAD_BYTES = 600 * 1024 * 1024;
+  // Longest clip we will ever emit. The client enforces the per-tier limit
+  // (15s free / 30s Catnip Club); this is the outer bound. It used to be 15s
+  // flat, which silently truncated every premium 30s entry.
+  const MAX_CLIP_SECONDS = 30;
+
   const upload = multer({
     dest: os.tmpdir(),
-    limits: { fileSize: 600 * 1024 * 1024 },
+    limits: { fileSize: MAX_UPLOAD_BYTES },
   });
 
   app.get("/api/health", (req, res) => {
@@ -78,10 +87,16 @@ async function startServer() {
       return;
     }
 
+    const sizeMb = ((req.file?.size || 0) / 1024 / 1024).toFixed(1);
+    console.log(
+      `[process-video] received ${sizeMb}MB, type=${req.file?.mimetype}, ` +
+      `trimStart=${req.body.trimStart}, trimEnd=${req.body.trimEnd}`
+    );
+
     const trimStart = Math.max(parseFloat(req.body.trimStart) || 0, 0);
     const trimEnd = parseFloat(req.body.trimEnd);
-    const rawDuration = isNaN(trimEnd) ? 15 : trimEnd - trimStart;
-    const duration = Math.min(Math.max(rawDuration, 1), 15);
+    const rawDuration = isNaN(trimEnd) ? MAX_CLIP_SECONDS : trimEnd - trimStart;
+    const duration = Math.min(Math.max(rawDuration, 1), MAX_CLIP_SECONDS);
     const outputPath = path.join(os.tmpdir(), `clip_${Date.now()}_${Math.random().toString(36).slice(2)}.mp4`);
 
     const cleanup = () => {
@@ -149,9 +164,16 @@ async function startServer() {
         if (!res.headersSent) res.status(500).json({ error: "Streaming failed" });
       });
     } catch (err) {
-      console.error("ffmpeg processing error:", err);
+      console.error("[process-video] ffmpeg failed:", err);
       cleanup();
-      if (!res.headersSent) res.status(500).json({ error: "Video processing failed" });
+      if (!res.headersSent) {
+        res.status(500).json({
+          error: "processing_failed",
+          message:
+            "We couldn't read that video file. It may be an unusual format — " +
+            "try recording or exporting it again.",
+        });
+      }
     }
   });
 
@@ -173,8 +195,22 @@ async function startServer() {
   }
 
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    console.error("Global error:", err);
-    res.status(err.status || 500).json({ error: err.message || "Internal Server Error" });
+    console.error("Global error:", err?.code || "", err);
+    // Multer rejects oversize uploads before the route ever runs, so this is
+    // the only place we can turn that into something a user can act on.
+    if (err?.code === "LIMIT_FILE_SIZE") {
+      res.status(413).json({
+        error: "file_too_large",
+        message:
+          "That video is too large to upload. Try a shorter recording, or lower " +
+          "your camera quality in Settings → Camera → Record Video.",
+      });
+      return;
+    }
+    res.status(err.status || 500).json({
+      error: "server_error",
+      message: err.message || "Something went wrong on our end. Please try again.",
+    });
   });
 
   app.listen(PORT, "0.0.0.0", () => {
