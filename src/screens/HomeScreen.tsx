@@ -4,7 +4,7 @@ import { Clock, Play, ChevronRight, Sparkles, Gift, Bell, TrendingUp, MessageCir
 import { CommentsSheet } from '../components/CommentsSheet';
 import { useThemes, Countdown, isThemeRevealed } from '../components/themes';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, orderBy, limit, getDocs, doc, getDoc, onSnapshot, where } from 'firebase/firestore';
+import { collection, query, orderBy, limit, getDocs, doc, getDoc, onSnapshot, where, getCountFromServer } from 'firebase/firestore';
 import { db } from '../firebase';
 import { ReportModal } from '../components/ReportModal';
 
@@ -181,13 +181,19 @@ export function HomeScreen() {
       setLoading(false);
     });
 
-    const unsubscribeTotal = onSnapshot(collection(db, 'cats'), (snapshot) => {
-      setRealCatCount(snapshot.size);
-    });
+    // The "N cats competing today" figure is a headline number, not live data.
+    // This used to be an onSnapshot over the entire cats collection, which meant
+    // downloading every cat document — video URLs and all — and holding the
+    // subscription open, purely to read snapshot.size. getCountFromServer
+    // returns the count alone and costs a single read.
+    let cancelled = false;
+    getCountFromServer(collection(db, 'cats'))
+      .then((res) => { if (!cancelled) setRealCatCount(res.data().count); })
+      .catch((e) => console.error('Error counting cats:', e));
 
     return () => {
+      cancelled = true;
       unsubscribeTopCats();
-      unsubscribeTotal();
     };
   }, []);
 

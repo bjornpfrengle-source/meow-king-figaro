@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { useState, useEffect, useMemo } from 'react';
+import { collection, query, orderBy, onSnapshot, where, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Species, toSpecies, APP_SPECIES } from './species';
 
@@ -38,16 +38,42 @@ export function freeRevealAtMs(theme: Theme) {
 }
 
 /**
+ * How much of the roster the app actually needs in memory.
+ *
+ * The roster is seeded a year ahead, so reading all of it means every screen
+ * downloads ~380 documents on mount and re-filters them on every tick. Nothing
+ * in the UI looks further back than the last 30 days (notification results,
+ * the leaderboard's past winners) or further forward than the 3-day Catnip
+ * Club preview, so a window around today covers every consumer at ~40 docs.
+ *
+ * Admin screens that manage the whole roster pass { full: true }.
+ */
+const PAST_WINDOW_MS = 35 * 24 * 60 * 60 * 1000;
+const FUTURE_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
+
+/**
  * Live view of the themes roster from Firestore. Recomputes which theme is
  * active/upcoming every 30s so rollovers happen without a reload.
  */
-export function useThemes() {
+export function useThemes(options?: { full?: boolean }) {
+  const full = options?.full ?? false;
   const [themes, setThemes] = useState<Theme[]>([]);
   const [loading, setLoading] = useState(true);
   const [nowMs, setNowMs] = useState(Date.now());
 
   useEffect(() => {
-    const q = query(collection(db, 'themes'), orderBy('startAt', 'asc'));
+    // The window is fixed at subscribe time rather than tracking nowMs — it has
+    // weeks of slack at both ends, so it never needs to move mid-session, and
+    // recomputing it on every tick would tear down and rebuild the listener.
+    const anchor = Date.now();
+    const q = full
+      ? query(collection(db, 'themes'), orderBy('startAt', 'asc'))
+      : query(
+          collection(db, 'themes'),
+          where('startAt', '>=', Timestamp.fromMillis(anchor - PAST_WINDOW_MS)),
+          where('startAt', '<=', Timestamp.fromMillis(anchor + FUTURE_WINDOW_MS)),
+          orderBy('startAt', 'asc')
+        );
     const unsub = onSnapshot(
       q,
       (snap) => {
@@ -70,7 +96,7 @@ export function useThemes() {
       () => setLoading(false)
     );
     return () => unsub();
-  }, []);
+  }, [full]);
 
   useEffect(() => {
     const t = setInterval(() => setNowMs(Date.now()), 30000);
@@ -80,10 +106,28 @@ export function useThemes() {
   // Only surface themes belonging to this build's arena. Today every theme is
   // 'cat', so this is a no-op — but it's what lets a dog/bird build share this
   // codebase and this Firestore collection without seeing each other's themes.
-  const inArena = themes.filter((t) => t.species === APP_SPECIES);
+  //
+  // Memoised on `themes` alone: the species of a theme never changes with the
+  // clock, so this array must keep its identity across the 30s tick. Several
+  // screens list it in a useEffect dependency array, and when it was rebuilt
+  // every tick those effects re-fired twice a minute — each one firing a fresh
+  // burst of sequential Firestore reads for past-theme results. That, not the
+  // rendering, was what made the whole app feel like it was choking.
+  const inArena = useMemo(
+    () => themes.filter((t) => t.species === APP_SPECIES),
+    [themes]
+  );
 
-  const active = inArena.find((t) => t.startMs <= nowMs && t.endMs > nowMs) || null;
-  const upcoming = inArena.filter((t) => t.startMs > nowMs);
+  // These two genuinely depend on the clock. `active` resolves to an element of
+  // inArena, so its identity stays stable until the theme actually rolls over.
+  const active = useMemo(
+    () => inArena.find((t) => t.startMs <= nowMs && t.endMs > nowMs) || null,
+    [inArena, nowMs]
+  );
+  const upcoming = useMemo(
+    () => inArena.filter((t) => t.startMs > nowMs),
+    [inArena, nowMs]
+  );
 
   return { active, upcoming, themes: inArena, loading, nowMs };
 }

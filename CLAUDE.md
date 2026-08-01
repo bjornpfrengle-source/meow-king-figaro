@@ -62,6 +62,38 @@ A proper repeating rotation was deliberately deferred: entries store
 merge separate occurrences' history. Doing it properly means unique per-
 occurrence ids plus migrating existing entries.
 
+**Reading the roster is windowed.** `useThemes()` only subscribes to themes
+within roughly a month either side of today. With a year seeded, an unbounded
+read meant ~380 documents per screen — see "Performance traps" below. Admin
+screens that manage the full roster pass `useThemes({ full: true })`.
+
+### Concurrent themes (2-3 at once) — design notes, not built
+
+Deferred to v2, but the groundwork is mostly there. Recorded so it doesn't have
+to be re-derived:
+
+- **The schema already allows it.** Nothing stops two theme docs having
+  overlapping `startAt`/`endAt`. The only blocker is `themes.tsx` using
+  `.find()` for `active`, which silently returns the first match. Entries
+  already carry `theme: '<slug>'`, so they self-partition by theme.
+- **Model it as tracks, not an array.** Add a `track` field (`daily`,
+  `weekly`, `wildcard`); each track holds at most one live theme, so
+  `activeByTrack` enforces the invariant by shape rather than by careful
+  seeding. The existing `type` field already carries these values.
+- **Do the `themeId` migration first.** Because the join key is the slug,
+  concurrent tracks make the recurring-slug collision above more likely, not
+  less. Write the Firestore doc id as `themeId` alongside `theme`, query on it,
+  keep the slug for display.
+- **Battle screen: one theme per battle.** Tabs pick the lane; never label the
+  two halves with different themes. A cross-theme battle has no coherent
+  answer to which leaderboard receives the win, and entries in the busier lane
+  accumulate more battles, so scores stop being comparable.
+- The 4px divider at `VoteScreen.tsx:331` is the natural home for the lane's
+  theme chip and countdown — once tracks run on different clocks the countdown
+  can no longer live in a single global header.
+- Each live lane roughly multiplies arena reads, so lazy-load a lane on first
+  tap rather than prefetching all of them.
+
 ## Premium (Catnip Club)
 
 - `isPremium = userProfile.isPremium || isAdmin`, so the owner account always
@@ -72,6 +104,31 @@ occurrence ids plus migrating existing entries.
   Connect needs configuring until real IAP is built.
 - Perks: second cat, 3-day early theme access (vs 12h free), 30s clips (vs 15s),
   entry swapping, no monthly upload cap.
+
+## Performance traps
+
+The app once became almost unusable — buttons needing several taps — from a
+combination that is worth recognising again, because none of the pieces looked
+wrong on its own:
+
+- `useThemes()` read the **entire** `themes` collection with no date bound. Fine
+  at 14 documents; the year-long seed took it to ~380.
+- It is a hook, not a context, and **seven screens call it**, so each mounts its
+  own listener over that whole collection.
+- It ticks `setNowMs` every 30s, and the derived arrays were rebuilt on every
+  render. Fresh array identity meant every consumer's
+  `useEffect(..., [themes])` re-fired **twice a minute** — and some of those
+  effects fan out into sequential per-theme Firestore reads.
+
+So a background clock tick was driving repeated bursts of network work, and the
+blocked main thread is what swallowed the taps. Fixes applied: window the query,
+`useMemo` the derived arrays so identity is stable across ticks, and give the
+admin screen an opt-out. **If you add a `useEffect` that depends on an array
+returned from a hook, check that array is memoised.**
+
+Related: `HomeScreen` held an `onSnapshot` over all of `cats` purely to read
+`snapshot.size` — downloading every document to display one number. Use
+`getCountFromServer`.
 
 ## Cost
 

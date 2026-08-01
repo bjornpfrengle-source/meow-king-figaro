@@ -20,7 +20,9 @@ function fmt(ms: number) {
 export function ThemeAdminScreen() {
   const navigate = useNavigate();
   const { isAuthReady, isAdmin } = useFirebase();
-  const { themes, loading } = useThemes();
+  // Admin manages the whole roster, including themes a year out, so this is the
+  // one screen that opts out of the windowed read the rest of the app uses.
+  const { themes, loading } = useThemes({ full: true });
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
