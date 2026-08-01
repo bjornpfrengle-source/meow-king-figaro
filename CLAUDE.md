@@ -34,6 +34,32 @@ executable, and fails with "could not determine executable to run". Rules
 silently stayed stale for days because of this, which surfaced as unexplained
 "Missing or insufficient permissions" errors on upload.
 
+## Firestore is on the AI Studio shared quota — needs upgrading before real traffic
+
+The database ID (`ai-studio-9d6ee796-...`) gives it away: this Firestore
+database was provisioned through the Google AI Studio integration, which
+places it in a separate "AI shared quota" group — **even though the project
+itself is already on the Blaze pay-as-you-go plan.** The two are independent;
+being on Blaze doesn't move this specific database off the shared group.
+
+Limits: 50,000 reads/day, 40,000 writes/day, 1 GiB stored, 10 GiB egress/month
+(egress here is Firestore document traffic only — video streaming goes through
+Storage, a separate quota, so this isn't the "Download Australia" cost problem).
+Confirmed still active via the "This database is currently subject to AI
+shared quota limits" banner on the Indexes/Usage tabs in the Firebase console.
+
+The dangerous part isn't cost, it's **availability**: hit the daily limit and
+the service pauses for every database in the shared group until midnight
+Pacific. That's not a slowdown, it's the whole app going down — uploads,
+votes, leaderboard, everything — until the reset.
+
+Fix is a single click: **Firebase console → Firestore → Indexes (or Usage) →
+"Upgrade database"** button. This is a billing-adjacent account action, so it
+should be done by Bjorn directly rather than by Claude. Do this before any
+real user growth — with the seeded year of themes plus normal per-screen
+reads, 50k/day is closer than it looks. (See "Performance traps" below for
+the read-volume bug that made this more urgent to check.)
+
 ## Firestore gotchas
 
 - Uses a **named database**, not `(default)`: `ai-studio-9d6ee796-8f1c-47a8-ac92-44863325253b`.
