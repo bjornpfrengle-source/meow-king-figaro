@@ -34,7 +34,7 @@ executable, and fails with "could not determine executable to run". Rules
 silently stayed stale for days because of this, which surfaced as unexplained
 "Missing or insufficient permissions" errors on upload.
 
-## Firestore is on the AI Studio shared quota — needs upgrading before real traffic
+## Firestore was on the AI Studio shared quota — upgraded 1 Aug 2026
 
 The database ID (`ai-studio-9d6ee796-...`) gives it away: this Firestore
 database was provisioned through the Google AI Studio integration, which
@@ -48,17 +48,20 @@ Storage, a separate quota, so this isn't the "Download Australia" cost problem).
 Confirmed still active via the "This database is currently subject to AI
 shared quota limits" banner on the Indexes/Usage tabs in the Firebase console.
 
-The dangerous part isn't cost, it's **availability**: hit the daily limit and
-the service pauses for every database in the shared group until midnight
-Pacific. That's not a slowdown, it's the whole app going down — uploads,
-votes, leaderboard, everything — until the reset.
+The dangerous part wasn't cost, it was **availability**: hit the daily limit
+and the service pauses for every database in the shared group until midnight
+Pacific. Not a slowdown — the whole app going down, uploads/votes/leaderboard
+included, until the reset.
 
-Fix is a single click: **Firebase console → Firestore → Indexes (or Usage) →
-"Upgrade database"** button. This is a billing-adjacent account action, so it
-should be done by Bjorn directly rather than by Claude. Do this before any
-real user growth — with the seeded year of themes plus normal per-screen
-reads, 50k/day is closer than it looks. (See "Performance traps" below for
-the read-volume bug that made this more urgent to check.)
+**Fixed 1 Aug 2026.** Bjorn clicked Firebase console → Firestore → Indexes →
+"Upgrade database" and confirmed "Upgrade successful, moved into pay-as-you-go."
+This database now bills normally against the project's existing Blaze plan
+instead of sharing the AI Studio pool — no more 50k reads/day ceiling. No code
+or rules change was involved; it was purely an account-side move.
+
+The project was originally spun up through Google AI Studio, which is also
+why the Firestore database ID still carries the `ai-studio-` prefix — cosmetic
+now, but explains the naming if it comes up again.
 
 ## Firestore gotchas
 
