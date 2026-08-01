@@ -128,15 +128,21 @@ export function LeaderboardScreen() {
         .sort((a, b) => b.endMs - a.endMs)
         .slice(0, 8);
 
-      const results: Array<{ theme: any; winner: Leader; ownerId: string; entrants: number; videoUrl: string; cry: string }> = [];
-      for (const theme of ended) {
+      // Each theme's cats query and its winner's user doc are independent of
+      // every other theme, so fetch all 8 themes concurrently instead of
+      // awaiting one before starting the next. Sequentially this was up to 16
+      // round trips on every Leaderboard visit; in parallel it's one round
+      // trip's worth of latency regardless of how many themes are ended.
+      // Ordering (`ended` is pre-sorted newest-first) is preserved by mapping
+      // rather than pushing as each promise settles.
+      const settled = await Promise.all(ended.map(async (theme) => {
         try {
           const snap = await getDocs(query(collection(db, 'cats'), where('theme', '==', theme.slug)));
           const cats = snap.docs
             .map(d => ({ id: d.id, ...(d.data() as any) }))
             .filter((c: any) => !!c.videoUrl)
             .sort((a: any, b: any) => (b.score || 0) - (a.score || 0));
-          if (cats.length === 0) continue;
+          if (cats.length === 0) return null;
 
           const top: any = cats[0];
           let ownerName = 'Anonymous';
@@ -151,7 +157,7 @@ export function LeaderboardScreen() {
               }
             } catch {}
           }
-          results.push({
+          return {
             theme,
             entrants: cats.length,
             ownerId: top.ownerId || '',
@@ -166,10 +172,12 @@ export function LeaderboardScreen() {
               img: img || '1514888286974-6c03e2ca1dba',
               isRealImage: !!img,
             },
-          });
-        } catch {}
-      }
-      setPastResults(results);
+          };
+        } catch {
+          return null;
+        }
+      }));
+      setPastResults(settled.filter((r): r is NonNullable<typeof r> => r !== null));
     };
     buildPast();
   }, [user, themes]);

@@ -80,13 +80,19 @@ export function NotificationsScreen() {
         ).catch(() => null);
         const allUserCats = allUserCatsSnap?.docs.map(d => ({ id: d.id, ...(d.data() as any) })) ?? [];
 
-        for (const theme of recentlyEnded) {
+        // Each ended theme's "who else entered" query is independent of every
+        // other theme, so fetch them all concurrently rather than one at a
+        // time. With a month-long window this could be a dozen-plus themes,
+        // and sequentially that meant a dozen-plus round trips before the
+        // Notifications screen could render anything. Winners/results are
+        // collected per theme first, then folded into `list` afterward so the
+        // original recentlyEnded ordering (and the "winners float to the top"
+        // behaviour) is unaffected by which request happens to finish first.
+        const perTheme = await Promise.all(recentlyEnded.map(async (theme) => {
+          const userThemeCats = allUserCats.filter(c => c.theme === theme.slug);
+          if (userThemeCats.length === 0) return { winners: [] as NotifItem[], results: [] as NotifItem[] };
+
           try {
-            const userThemeCats = allUserCats.filter(c => c.theme === theme.slug);
-            if (userThemeCats.length === 0) continue;
-
-            const userCatDocs = userThemeCats;
-
             const allCatsSnap = await getDocs(
               query(collection(db, 'cats'), where('theme', '==', theme.slug))
             );
@@ -98,7 +104,10 @@ export function NotificationsScreen() {
             const daysAgo = Math.round((now - theme.endMs) / (24 * 60 * 60 * 1000));
             const timeStr = daysAgo === 0 ? 'Just ended' : `${daysAgo}d ago`;
 
-            for (const myCat of userCatDocs) {
+            const winners: NotifItem[] = [];
+            const results: NotifItem[] = [];
+
+            for (const myCat of userThemeCats) {
               const rank = allCats.findIndex(c => c.id === myCat.id) + 1;
               const votes = myCat.score || 0;
               const isWinner = rank === 1;
@@ -110,7 +119,7 @@ export function NotificationsScreen() {
                   themeName: theme.title,
                   votes,
                 };
-                list.unshift({
+                winners.push({
                   id: `winner-${theme.id}-${myCat.id}`,
                   kind: 'winner',
                   title: `👑 ${myCat.name || 'Your cat'} WON "${theme.title}"!`,
@@ -120,7 +129,7 @@ export function NotificationsScreen() {
                   onClick: () => setCelebration(cd),
                 });
               } else {
-                list.push({
+                results.push({
                   id: `result-${theme.id}-${myCat.id}`,
                   kind: 'result',
                   title: `Results: "${theme.title}"`,
@@ -129,9 +138,16 @@ export function NotificationsScreen() {
                 });
               }
             }
+            return { winners, results };
           } catch (e) {
             console.error('Error loading theme results:', e);
+            return { winners: [] as NotifItem[], results: [] as NotifItem[] };
           }
+        }));
+
+        for (const { winners, results } of perTheme) {
+          for (const w of winners) list.unshift(w);
+          for (const r of results) list.push(r);
         }
 
         // 3) Recent comments on user's cats
