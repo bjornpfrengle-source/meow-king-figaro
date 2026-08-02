@@ -25,9 +25,13 @@ permissions, splash screen, the Sign in with Apple bridge.
 **Firebase rules** do NOT deploy with the code. They are manual, every time:
 
 ```
-npx firebase-tools deploy --only firestore:rules
-npx firebase-tools deploy --only storage
+cd ~/meow-king-figaro && npx firebase-tools deploy --only firestore:rules
+cd ~/meow-king-figaro && npx firebase-tools deploy --only storage
 ```
+
+Always include the `cd` — a fresh Terminal opens in `~`, and from there the
+CLI fails with "Not in a Firebase app directory (could not locate
+firebase.json)".
 
 Never `npx firebase` — that resolves to the client SDK package, has no
 executable, and fails with "could not determine executable to run". Rules
