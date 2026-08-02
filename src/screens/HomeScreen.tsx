@@ -78,7 +78,13 @@ export function HomeScreen() {
   const [kingdomVideo, setKingdomVideo] = useState<KingdomCat | null>(null);
   const [announcement, setAnnouncement] = useState<{ id: string; title: string; body?: string; videoUrl?: string; ctaLabel?: string; ctaUrl?: string } | null>(null);
 
-  // Check for active announcements — show once per session per announcement
+  // Check for active announcements — shown once per announcement, ever.
+  //
+  // This used sessionStorage, which the WKWebView clears every time the app is
+  // closed, so the popup reappeared on every single launch. localStorage
+  // persists, so dismissing it once is permanent on that device. The key is
+  // per-announcement id, so publishing a new announcement still shows to
+  // everyone — it's only the same one that won't nag.
   useEffect(() => {
     const check = async () => {
       try {
@@ -92,8 +98,8 @@ export function HomeScreen() {
         });
         const d = sorted[0];
         const seenKey = `announce_seen_${d.id}`;
-        if (sessionStorage.getItem(seenKey)) return;
-        sessionStorage.setItem(seenKey, '1');
+        if (localStorage.getItem(seenKey)) return;
+        localStorage.setItem(seenKey, '1');
         setAnnouncement({ id: d.id, ...(d.data() as any) });
       } catch (e) {
         // no-op: announcements are optional

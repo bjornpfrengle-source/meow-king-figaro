@@ -7,6 +7,8 @@ import { db } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
 import { useThemes } from '../components/themes';
 import { ReportModal } from '../components/ReportModal';
+import { BadgedAvatar } from '../components/BadgedAvatar';
+import { topBadgeId } from '../components/rewards';
 
 function chatTimeAgo(ts: any): string {
   if (!ts?.toDate) return 'now';
@@ -203,6 +205,7 @@ export function LeaderboardScreen() {
         userId: user.uid,
         userName: userProfile?.displayName || user.displayName || 'Anonymous Cat',
         userAvatar: userProfile?.photoURL || user.photoURL || 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?ixlib=rb-4.0.3&w=100&q=80',
+        userBadge: topBadgeId(userProfile?.badges) || '',
         createdAt: serverTimestamp(),
       });
     } catch (e) {
@@ -386,13 +389,14 @@ export function LeaderboardScreen() {
                 .filter((m) => !(userProfile?.blockedUserIds || []).includes(m.userId))
                 .map((m) => (
                   <div key={m.id} className="flex gap-3 p-2.5">
-                    <img
-                      onClick={() => navigate(`/user/${m.userId}`)}
-                      src={m.userAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.userName || 'Cat')}&background=random`}
-                      alt={m.userName}
-                      className="w-9 h-9 rounded-full object-cover border border-pink-100 shrink-0 cursor-pointer"
-                      referrerPolicy="no-referrer"
-                    />
+                    <div onClick={() => navigate(`/user/${m.userId}`)} className="cursor-pointer">
+                      <BadgedAvatar
+                        src={m.userAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.userName || 'Cat')}&background=random`}
+                        name={m.userName}
+                        badgeId={m.userBadge}
+                        size={36}
+                      />
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-baseline justify-between gap-2">
                         <span onClick={() => navigate(`/user/${m.userId}`)} className="font-bold text-neutral-800 text-sm truncate cursor-pointer">{m.userName}</span>

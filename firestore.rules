@@ -109,11 +109,15 @@ service cloud.firestore {
     }
 
     function isValidMessage() {
-      return hasOnlyAllowedFields(['text', 'userId', 'userName', 'userAvatar', 'createdAt']) &&
+      return hasOnlyAllowedFields(['text', 'userId', 'userName', 'userAvatar', 'userBadge', 'createdAt']) &&
              isValidString('text', 1, 1000) &&
              request.resource.data.userId == request.auth.uid &&
              isValidString('userName', 1, 100) &&
              isValidOptionalString('userAvatar', 0, 1048576) &&
+             // Cosmetic badge id snapshotted at send time. Purely decorative, so
+             // it isn't cross-checked against the author's real badge list — the
+             // length bound just stops it being used as free text storage.
+             isValidOptionalString('userBadge', 0, 50) &&
              request.resource.data.createdAt is timestamp;
     }
 

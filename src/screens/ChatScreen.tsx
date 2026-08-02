@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, Timestamp, doc, updateDoc, increment, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
+import { BadgedAvatar } from '../components/BadgedAvatar';
+import { topBadgeId } from '../components/rewards';
 
 interface Message {
   id: string;
@@ -12,6 +14,7 @@ interface Message {
   userId: string;
   userName: string;
   userAvatar: string;
+  userBadge?: string;
   createdAt: Timestamp | null;
   likes?: number;
   likedBy?: string[];
@@ -79,6 +82,11 @@ export function ChatScreen() {
         // Prefer the up-to-date profile, fall back to the auth account
         userName: userProfile?.displayName || currentUser.displayName || 'Anonymous Cat',
         userAvatar: userProfile?.photoURL || currentUser.photoURL || '',
+        // Denormalised like userName/userAvatar above: rendering the badge from
+        // the author's profile would cost one read per message in the feed.
+        // Snapshotting it at send time means an old message keeps the badge the
+        // author had when they wrote it, which is fine — it reads as history.
+        userBadge: topBadgeId(userProfile?.badges) || '',
         createdAt: serverTimestamp(),
       });
     } catch (error) {
@@ -115,13 +123,14 @@ export function ChatScreen() {
                 key={msg.id}
                 className="flex gap-3 items-start"
               >
-                <img
-                  onClick={() => navigate(`/user/${msg.userId}`)}
-                  src={msg.userAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(msg.userName || 'Cat')}&background=random`}
-                  alt={msg.userName}
-                  className="w-9 h-9 rounded-full object-cover border border-pink-100 shrink-0 cursor-pointer"
-                  referrerPolicy="no-referrer"
-                />
+                <div onClick={() => navigate(`/user/${msg.userId}`)} className="cursor-pointer">
+                  <BadgedAvatar
+                    src={msg.userAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(msg.userName || 'Cat')}&background=random`}
+                    name={msg.userName}
+                    badgeId={msg.userBadge}
+                    size={36}
+                  />
+                </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-2">
                     <span onClick={() => navigate(`/user/${msg.userId}`)} className="font-bold text-neutral-800 text-sm truncate cursor-pointer">{msg.userName}</span>

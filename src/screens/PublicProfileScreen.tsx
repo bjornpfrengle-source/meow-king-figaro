@@ -4,6 +4,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { collection, query, where, getDocs, getDoc, doc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
+import { BadgedAvatar } from '../components/BadgedAvatar';
+import { DIGITAL_REWARDS, topBadgeId } from '../components/rewards';
 
 interface Cat {
   id: string;
@@ -119,12 +121,12 @@ export function PublicProfileScreen() {
         <div className="px-6">
           {/* User info */}
           <div className="flex flex-col items-center mb-6">
-            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-xl bg-neutral-200 mb-3">
-              <img
+            <div className="mb-3">
+              <BadgedAvatar
                 src={profile.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.displayName || 'Cat')}&background=random`}
-                alt={profile.displayName}
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
+                name={profile.displayName}
+                badgeId={topBadgeId(profile.badges)}
+                size={96}
               />
             </div>
             <h2 className="text-2xl font-black text-neutral-800">{profile.displayName || 'Anonymous Cat'}</h2>
@@ -133,6 +135,23 @@ export function PublicProfileScreen() {
             {/* Bio */}
             {profile.bio && (
               <p className="text-sm text-neutral-600 leading-relaxed text-center mt-3 max-w-[280px]">{profile.bio}</p>
+            )}
+
+            {/* Earned badges — the whole point of a badge is other people
+                seeing it, so the public profile shows every one they own, not
+                just the top pip on the avatar. */}
+            {(profile.badges?.length ?? 0) > 0 && (
+              <div className="flex flex-wrap gap-2 justify-center mt-4">
+                {DIGITAL_REWARDS.filter((r) => profile.badges?.includes(r.id)).map((r) => {
+                  const Icon = r.icon;
+                  return (
+                    <div key={r.id} className={`flex items-center gap-1.5 ${r.bg} border border-pink-50 px-3 py-1.5 rounded-full shadow-sm`}>
+                      <Icon className={`w-4 h-4 ${r.color}`} />
+                      <span className="text-[11px] font-bold text-neutral-700">{r.title}</span>
+                    </div>
+                  );
+                })}
+              </div>
             )}
 
             {/* Stats */}
