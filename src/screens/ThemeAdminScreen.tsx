@@ -115,26 +115,26 @@ export function ThemeAdminScreen() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Title (e.g. Lazy Sundays)"
-            className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-teal-400"
+            className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-base font-medium outline-none focus:border-teal-400"
           />
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Description shown to users"
             rows={2}
-            className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-teal-400 resize-none"
+            className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-base font-medium outline-none focus:border-teal-400 resize-none"
           />
           <div>
             <label className="block text-xs font-bold text-neutral-500 mb-1 uppercase tracking-wide">Starts</label>
-            <input type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-teal-400" />
+            <input type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-base font-medium outline-none focus:border-teal-400" />
           </div>
           <div>
             <label className="block text-xs font-bold text-neutral-500 mb-1 uppercase tracking-wide">Ends</label>
-            <input type="datetime-local" value={end} onChange={(e) => setEnd(e.target.value)} className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-teal-400" />
+            <input type="datetime-local" value={end} onChange={(e) => setEnd(e.target.value)} className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-base font-medium outline-none focus:border-teal-400" />
           </div>
           <div>
             <label className="block text-xs font-bold text-neutral-500 mb-1 uppercase tracking-wide">Type</label>
-            <select value={type} onChange={(e) => setType(e.target.value as any)} className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-teal-400">
+            <select value={type} onChange={(e) => setType(e.target.value as any)} className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-base font-medium outline-none focus:border-teal-400">
               <option value="daily">Daily</option>
               <option value="weekly">Weekly</option>
               <option value="surprise">Surprise</option>

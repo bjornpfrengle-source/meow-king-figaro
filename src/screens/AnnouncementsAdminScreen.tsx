@@ -115,14 +115,14 @@ export function AnnouncementsAdminScreen() {
             value={title}
             onChange={e => setTitle(e.target.value)}
             placeholder="Title (e.g. Big News! 🐱)"
-            className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-purple-400"
+            className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-base font-medium outline-none focus:border-purple-400"
           />
           <textarea
             value={body}
             onChange={e => setBody(e.target.value)}
             placeholder="Message / announcement text (optional if using a video)"
             rows={4}
-            className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-purple-400 resize-none"
+            className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-base font-medium outline-none focus:border-purple-400 resize-none"
           />
           <div>
             <label className="block text-xs font-bold text-neutral-500 mb-1 uppercase tracking-wide">Video URL (optional)</label>
@@ -130,7 +130,7 @@ export function AnnouncementsAdminScreen() {
               value={videoUrl}
               onChange={e => setVideoUrl(e.target.value)}
               placeholder="https://... paste a video link"
-              className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-purple-400"
+              className="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-base font-medium outline-none focus:border-purple-400"
             />
           </div>
           <div className="flex gap-2">
@@ -138,13 +138,13 @@ export function AnnouncementsAdminScreen() {
               value={ctaLabel}
               onChange={e => setCtaLabel(e.target.value)}
               placeholder="Button label (optional)"
-              className="flex-1 bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-purple-400"
+              className="flex-1 bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-base font-medium outline-none focus:border-purple-400"
             />
             <input
               value={ctaUrl}
               onChange={e => setCtaUrl(e.target.value)}
               placeholder="Button URL"
-              className="flex-1 bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:border-purple-400"
+              className="flex-1 bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-base font-medium outline-none focus:border-purple-400"
             />
           </div>
           {error && <p className="text-xs font-bold text-red-500">{error}</p>}
