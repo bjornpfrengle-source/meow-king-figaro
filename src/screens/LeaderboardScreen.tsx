@@ -9,6 +9,7 @@ import { useThemes } from '../components/themes';
 import { ReportModal } from '../components/ReportModal';
 import { BadgedAvatar } from '../components/BadgedAvatar';
 import { topBadgeId } from '../components/rewards';
+import { themeWinnerId } from '../components/results';
 
 function chatTimeAgo(ts: any): string {
   if (!ts?.toDate) return 'now';
@@ -146,7 +147,13 @@ export function LeaderboardScreen() {
             .sort((a: any, b: any) => (b.score || 0) - (a.score || 0));
           if (cats.length === 0) return null;
 
-          const top: any = cats[0];
+          // Only show a past winner if someone actually won it — a theme where
+          // every entry sits on zero votes, or where the top is tied, has no
+          // winner to show rather than crowning whoever sorted first.
+          const winnerId = themeWinnerId(cats);
+          if (!winnerId) return null;
+
+          const top: any = cats.find((c: any) => c.ownerId === winnerId) ?? cats[0];
           let ownerName = 'Anonymous';
           let img = top.thumbnailUrl || top.catThumbnailUrl || '';
           if (top.ownerId) {

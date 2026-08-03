@@ -6,6 +6,7 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
 import { useThemes } from '../components/themes';
+import { themeWinnerId } from '../components/results';
 import { WinnerCelebrationModal } from '../components/WinnerCelebrationModal';
 
 interface CelebrationData {
@@ -107,10 +108,15 @@ export function NotificationsScreen() {
             const winners: NotifItem[] = [];
             const results: NotifItem[] = [];
 
+            // Winner is resolved by the shared rule, not by sort position:
+            // allCats is sorted by score, so position 1 crowned a zero-vote
+            // solo entry and fired the 👑 celebration modal for it.
+            const winnerId = themeWinnerId(allCats);
+
             for (const myCat of userThemeCats) {
               const rank = allCats.findIndex(c => c.id === myCat.id) + 1;
               const votes = myCat.score || 0;
-              const isWinner = rank === 1;
+              const isWinner = !!winnerId && myCat.ownerId === winnerId;
 
               if (isWinner && myCat.videoUrl) {
                 const cd: CelebrationData = {

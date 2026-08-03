@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Settings, Award, Plus, Video, ToggleRight, ToggleLeft, Trophy, Grid, Loader2, ShieldCheck, ShieldAlert, CalendarClock, Star, Trash2, MessageCircle, Pencil, Check, X, Megaphone } from 'lucide-react';
 import { CommentsSheet } from '../components/CommentsSheet';
 import { DIGITAL_REWARDS } from '../components/rewards';
+import { isThemeWinner } from '../components/results';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, where, orderBy, getDocs, doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { ref, deleteObject } from 'firebase/storage';
@@ -151,13 +152,10 @@ export function ProfileScreen() {
           let champion = false;
           try {
             const snap = await getDocs(query(collection(db, 'cats'), where('theme', '==', th)));
-            let topScore = -1;
-            let topOwner: string | null = null;
-            snap.forEach((d) => {
-              const x = d.data();
-              if ((x.score || 0) > topScore) { topScore = x.score || 0; topOwner = x.ownerId; }
-            });
-            champion = topOwner === user.uid;
+            champion = isThemeWinner(
+              snap.docs.map((d) => d.data() as { ownerId?: string; score?: number }),
+              user.uid
+            );
           } catch (e) { /* ignore */ }
           return { theme: th, title: prettify(th), champion, votes: byTheme[th] };
         })

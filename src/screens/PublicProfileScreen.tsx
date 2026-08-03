@@ -6,6 +6,7 @@ import { db } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
 import { BadgedAvatar } from '../components/BadgedAvatar';
 import { DIGITAL_REWARDS, topBadgeId } from '../components/rewards';
+import { isThemeWinner } from '../components/results';
 
 interface Cat {
   id: string;
@@ -65,9 +66,9 @@ export function PublicProfileScreen() {
         await Promise.all(themes.map(async (th) => {
           try {
             const tsnap = await getDocs(query(collection(db, 'cats'), where('theme', '==', th)));
-            let topScore = -1; let topOwner: string | null = null;
-            tsnap.forEach((d) => { const x = d.data(); if ((x.score || 0) > topScore) { topScore = x.score || 0; topOwner = x.ownerId; } });
-            if (topOwner === uid) winCount++;
+            if (isThemeWinner(tsnap.docs.map((d) => d.data() as { ownerId?: string; score?: number }), uid)) {
+              winCount++;
+            }
           } catch (e) { /* ignore */ }
         }));
         setWins(winCount);
