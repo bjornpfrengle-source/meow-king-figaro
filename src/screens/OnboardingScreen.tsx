@@ -22,6 +22,18 @@ export function OnboardingScreen() {
   // has always had) but is a real, tappable choice now — see the checkbox
   // below and the `allowRepost` write in nextStep().
   const [allowRepost, setAllowRepost] = useState(true);
+  const [authError, setAuthError] = useState('');
+
+  // Both sign-in buttons used to be bare `onClick={signInWithApple}`, so any
+  // rejection became an unhandled promise and the user saw nothing at all.
+  const runSignIn = async (fn: () => Promise<void>) => {
+    setAuthError('');
+    try {
+      await fn();
+    } catch (e: any) {
+      setAuthError(e?.message || 'Sign-in failed. Please try again.');
+    }
+  };
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -262,12 +274,18 @@ export function OnboardingScreen() {
               >
                 {!user ? (
                   <>
-                    <button onClick={signInWithApple} className="w-full bg-black text-white py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 active:scale-95 transition-transform">
+                    <button onClick={() => runSignIn(signInWithApple)} className="w-full bg-black text-white py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 active:scale-95 transition-transform">
                        Continue with Apple
                     </button>
-                    <button onClick={signIn} className="w-full bg-white border-2 border-neutral-200 text-neutral-700 py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2">
+                    <button onClick={() => runSignIn(signIn)} className="w-full bg-white border-2 border-neutral-200 text-neutral-700 py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2">
                       Continue with Google
                     </button>
+                    {authError && (
+                      <div className="bg-red-50 border border-red-200 rounded-2xl px-4 py-3">
+                        <p className="text-xs font-bold text-red-600 leading-relaxed break-words">{authError}</p>
+                        <p className="text-[10px] text-red-400 mt-1">Try “Continue with Google” if this keeps happening.</p>
+                      </div>
+                    )}
                   </>
                 ) : (
                   <div className="w-full bg-green-50 border-2 border-green-200 text-green-700 py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2">

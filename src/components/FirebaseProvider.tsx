@@ -129,22 +129,38 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
     if (bridge) {
       // Native path: ask the wrapper to present Apple's sheet, then sign in
       // to Firebase with the returned identity token + nonce.
+      //
+      // Every failure here used to end in resolve() or an unhandled rejection,
+      // so a failed Apple sign-in looked identical to nothing happening: tap
+      // the button, no sheet, no error, no account. Two testers hit this and
+      // both assumed the button was broken and used Google instead. Errors now
+      // carry a real message so the UI can show it and we can see the actual
+      // Firebase code rather than guessing.
       await new Promise<void>((resolve, reject) => {
         (window as any).__onAppleSignIn = async (idToken: string, rawNonce: string) => {
           try {
             const cred = provider.credential({ idToken, rawNonce });
             await signInWithCredential(auth, cred);
             resolve();
-          } catch (e) {
-            console.error('Apple credential sign-in failed:', e);
-            reject(e);
+          } catch (e: any) {
+            console.error('Apple credential sign-in failed:', e?.code, e?.message, e);
+            reject(new Error(e?.code ? `${e.code}: ${e.message}` : (e?.message || 'Apple sign-in failed.')));
           }
         };
         (window as any).__onAppleSignInError = (msg: string) => {
-          console.warn('Apple sign-in cancelled/failed:', msg);
-          resolve(); // treat cancel quietly
+          // A user-cancelled sheet is normal and stays quiet. Anything else is
+          // a genuine failure and must surface.
+          const cancelled = /cancel|1001/i.test(msg || '');
+          if (cancelled) {
+            resolve();
+          } else {
+            console.error('Apple sign-in failed natively:', msg);
+            reject(new Error(msg || 'Apple sign-in failed.'));
+          }
         };
-        try { bridge.postMessage({}); } catch (e) { reject(e); }
+        try { bridge.postMessage({}); } catch (e: any) {
+          reject(new Error('Could not open Apple sign-in: ' + (e?.message || 'bridge unavailable')));
+        }
       });
       return;
     }
@@ -154,7 +170,8 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
       await signInWithPopup(auth, provider);
     } catch (error: any) {
       if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') return;
-      console.error('Error signing in with Apple:', error);
+      console.error('Error signing in with Apple:', error?.code, error?.message, error);
+      throw new Error(error?.code ? `${error.code}: ${error.message}` : 'Apple sign-in failed.');
     }
   };
 

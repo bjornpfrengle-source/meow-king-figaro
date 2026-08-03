@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { collection, query, where, getDocs, doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
-import { DIGITAL_REWARDS } from '../components/rewards';
+import { DIGITAL_REWARDS, nextReward, earnedRewards } from '../components/rewards';
 
 export function PrizesScreen() {
   const navigate = useNavigate();
@@ -88,7 +88,28 @@ export function PrizesScreen() {
           ) : (
             <h2 className="text-5xl font-black relative z-10">{totalPoints.toLocaleString()}</h2>
           )}
-          <p className="text-white/90 text-sm mt-2 relative z-10">Keep uploading and getting votes to unlock more!</p>
+          {/* Progress toward the next tier. With eleven tiers a flat list gives
+              no sense of how close you are — this is the bit that makes the
+              next one feel worth chasing. */}
+          {!loading && (() => {
+            const next = nextReward(totalPoints);
+            if (!next) {
+              return <p className="text-white/90 text-sm mt-2 relative z-10">Every reward unlocked. Genuinely nobody else has done this.</p>;
+            }
+            const prevCost = earnedRewards(totalPoints).reduce((m, r) => Math.max(m, r.cost), 0);
+            const span = Math.max(1, next.cost - prevCost);
+            const pct = Math.min(100, Math.round(((totalPoints - prevCost) / span) * 100));
+            return (
+              <div className="relative z-10 mt-3">
+                <div className="h-2 bg-white/25 rounded-full overflow-hidden">
+                  <div className="h-full bg-white rounded-full transition-all" style={{ width: `${pct}%` }} />
+                </div>
+                <p className="text-white/90 text-xs mt-2 font-bold">
+                  {next.cost - totalPoints} more {next.cost - totalPoints === 1 ? 'vote' : 'votes'} to unlock {next.title}
+                </p>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Digital Rewards */}
@@ -110,13 +131,17 @@ export function PrizesScreen() {
                   key={reward.id}
                   className={`bg-white p-4 rounded-2xl border ${isClaimed ? 'border-green-200 shadow-sm' : isUnlocked ? 'border-yellow-200 shadow-sm' : 'border-neutral-100 opacity-75'} flex items-center gap-4`}
                 >
-                  <div className={`w-12 h-12 rounded-full ${reward.bg} flex items-center justify-center flex-shrink-0`}>
+                  <div
+                    className={`w-12 h-12 rounded-full ${reward.bg} flex items-center justify-center flex-shrink-0 ${isClaimed ? reward.ring ?? '' : ''}`}
+                    style={isClaimed && reward.glow ? { boxShadow: reward.glow } : undefined}
+                  >
                     <Icon className={`w-6 h-6 ${reward.color}`} />
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <h4 className="font-bold text-neutral-800">{reward.title}</h4>
-                    <p className="text-xs font-bold text-neutral-500">
-                      {isClaimed ? 'Earned ✓' : `${reward.cost} pts to unlock`}
+                    <p className="text-[11px] text-neutral-400 leading-snug">{reward.blurb}</p>
+                    <p className="text-xs font-bold text-neutral-500 mt-0.5">
+                      {isClaimed ? 'Earned ✓' : `${reward.cost.toLocaleString()} pts to unlock`}
                     </p>
                   </div>
                   {isClaimed ? (

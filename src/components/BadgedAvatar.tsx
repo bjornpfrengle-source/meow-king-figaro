@@ -34,16 +34,25 @@ export function BadgedAvatar({
   const pip = Math.max(16, Math.round(size * 0.38));
   const initials = (name || '?').trim().charAt(0).toUpperCase();
 
+  // Higher tiers restyle the whole avatar ring rather than just adding a pip —
+  // a frame you can spot across a chat feed is the part people actually chase.
+  const ring = reward?.ring ?? '';
+  const glow = reward?.glow;
+
   return (
-    <div className={`relative shrink-0 ${className}`} style={{ width: size, height: size }}>
+    <div
+      className={`relative shrink-0 ${className}`}
+      style={{ width: size, height: size, boxShadow: glow, borderRadius: '9999px' }}
+    >
       {src ? (
         <img
           src={src}
           alt={name || 'Profile'}
-          className="w-full h-full rounded-full object-cover border-2 border-white shadow-sm"
+          className={`w-full h-full rounded-full object-cover border-2 border-white shadow-sm ${ring}`}
+          referrerPolicy="no-referrer"
         />
       ) : (
-        <div className="w-full h-full rounded-full bg-red-400 text-white font-black flex items-center justify-center border-2 border-white shadow-sm"
+        <div className={`w-full h-full rounded-full bg-red-400 text-white font-black flex items-center justify-center border-2 border-white shadow-sm ${ring}`}
              style={{ fontSize: Math.round(size * 0.4) }}>
           {initials}
         </div>
