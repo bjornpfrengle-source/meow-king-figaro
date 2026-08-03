@@ -163,6 +163,34 @@ Related: `HomeScreen` held an `onSnapshot` over all of `cats` purely to read
 `snapshot.size` — downloading every document to display one number. Use
 `getCountFromServer`.
 
+## Speed work not yet done — investigated, deferred
+
+Three known wins, in the order they're worth doing. None are started.
+
+**1. Save the moderation frame as a thumbnail (biggest playback win, low risk).**
+`server.ts` already extracts a frame after trimming to send to Gemini, then
+throws it away. Save it to Storage and store `thumbnailUrl` on the cat doc
+instead. Today every grid and list renders a full `<video>` — Home's "Recent
+Winners" row autoplays three ~2MB 720p clips inside ~80px circles, and the
+leaderboard and profile grids do the same. A ~30KB image replaces a ~2MB
+video. Also cuts the premium "Download Australia" egress this app is billed at.
+
+**2. `preload="none"` + posters + lazy-load (quickest, very low risk).**
+Only `VoteScreen` sets `preload` at all; every other `<video>` defaults to
+`auto`, so iOS starts buffering all of them on page load. Add `preload="none"`
+and a `poster` off-screen, and an IntersectionObserver so scrolling a list
+doesn't kick off a dozen parallel downloads.
+
+**3. Trim on the device before upload (biggest upload win, most complex).**
+A 200MB clip currently goes phone → Railway (full 200MB over the *slow*
+direction) → ffmpeg cuts it to ~2MB → back to the phone → up again to
+Storage. The whole original crosses the network to be thrown away. The trim
+UI already produces `trimStart`/`trimEnd`, so a WebCodecs/canvas pass could
+cut it before it leaves the device — 200MB becomes ~3MB, roughly 10-50× on
+long clips. Cheaper partial version: have the server upload straight to
+Storage with the Admin SDK and return just the URL, removing one full
+transfer of the processed file.
+
 ## Cost
 
 Storage-at-rest is negligible; **egress dominates** — the bucket is in
