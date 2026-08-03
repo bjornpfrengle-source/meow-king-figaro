@@ -31,7 +31,16 @@ export function OnboardingScreen() {
     try {
       await fn();
     } catch (e: any) {
-      setAuthError(e?.message || 'Sign-in failed. Please try again.');
+      const raw = e?.message || '';
+      // Translate the one failure a normal person can actually act on. This
+      // happens when the same email already has an account via the other
+      // provider — common when someone tries Apple after Google, or when
+      // Apple's Hide My Email relay collides with an existing sign-up.
+      if (/account-exists-with-different-credential|email-already-in-use/i.test(raw)) {
+        setAuthError('You already have an account with this email. Sign in with Google instead.');
+      } else {
+        setAuthError(raw || 'Sign-in failed. Please try again.');
+      }
     }
   };
   const fileInputRef = useRef<HTMLInputElement>(null);

@@ -58,6 +58,51 @@ export function useFirebase() {
   return context;
 }
 
+/**
+ * Apple sign-in callbacks, registered once for the lifetime of the page.
+ *
+ * The native side fires the result with:
+ *
+ *     window.__onAppleSignIn && window.__onAppleSignIn(token, nonce, name);
+ *
+ * That `&&` is the trap. These handlers used to be created inside the
+ * signInWithApple promise, so they only existed while a sign-in was in flight.
+ * If anything cleared them between tapping the button and Apple returning —
+ * a re-render, a reload, the webview being reclaimed behind the full-screen
+ * Apple sheet — the guard evaluated to nothing and the result was dropped in
+ * total silence. Face ID goes green, the sheet dismisses, and the app just sits
+ * there, which is exactly what testers reported.
+ *
+ * Registering them at module scope means the entry point always exists. A
+ * result that arrives with no sign-in waiting is now recorded rather than lost.
+ */
+type ApplePending = {
+  onToken: (idToken: string, rawNonce: string) => void;
+  onError: (msg: string) => void;
+};
+let applePending: ApplePending | null = null;
+
+if (typeof window !== 'undefined') {
+  (window as any).__onAppleSignIn = (idToken: string, rawNonce: string) => {
+    if (!applePending) {
+      console.error('Apple sign-in returned but nothing was waiting for it.');
+      return;
+    }
+    const p = applePending;
+    applePending = null;
+    p.onToken(idToken, rawNonce);
+  };
+  (window as any).__onAppleSignInError = (msg: string) => {
+    if (!applePending) {
+      console.error('Apple sign-in error with nothing waiting for it:', msg);
+      return;
+    }
+    const p = applePending;
+    applePending = null;
+    p.onError(msg);
+  };
+}
+
 export function FirebaseProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -137,28 +182,44 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
       // carry a real message so the UI can show it and we can see the actual
       // Firebase code rather than guessing.
       await new Promise<void>((resolve, reject) => {
-        (window as any).__onAppleSignIn = async (idToken: string, rawNonce: string) => {
-          try {
-            const cred = provider.credential({ idToken, rawNonce });
-            await signInWithCredential(auth, cred);
-            resolve();
-          } catch (e: any) {
-            console.error('Apple credential sign-in failed:', e?.code, e?.message, e);
-            reject(new Error(e?.code ? `${e.code}: ${e.message}` : (e?.message || 'Apple sign-in failed.')));
+        // If Apple never calls back at all, don't leave the user staring at a
+        // dead button forever — fail with something they can report.
+        const timeout = setTimeout(() => {
+          if (applePending) {
+            applePending = null;
+            reject(new Error('Apple sign-in timed out. Please try again, or use Google.'));
           }
+        }, 90_000);
+
+        applePending = {
+          onToken: async (idToken: string, rawNonce: string) => {
+            clearTimeout(timeout);
+            try {
+              const cred = provider.credential({ idToken, rawNonce });
+              await signInWithCredential(auth, cred);
+              resolve();
+            } catch (e: any) {
+              console.error('Apple credential sign-in failed:', e?.code, e?.message, e);
+              reject(new Error(e?.code ? `${e.code}: ${e.message}` : (e?.message || 'Apple sign-in failed.')));
+            }
+          },
+          onError: (msg: string) => {
+            clearTimeout(timeout);
+            // A user-cancelled sheet is normal and stays quiet. Anything else
+            // is a genuine failure and must surface.
+            const cancelled = /cancel|1001/i.test(msg || '');
+            if (cancelled) {
+              resolve();
+            } else {
+              console.error('Apple sign-in failed natively:', msg);
+              reject(new Error(msg || 'Apple sign-in failed.'));
+            }
+          },
         };
-        (window as any).__onAppleSignInError = (msg: string) => {
-          // A user-cancelled sheet is normal and stays quiet. Anything else is
-          // a genuine failure and must surface.
-          const cancelled = /cancel|1001/i.test(msg || '');
-          if (cancelled) {
-            resolve();
-          } else {
-            console.error('Apple sign-in failed natively:', msg);
-            reject(new Error(msg || 'Apple sign-in failed.'));
-          }
-        };
+
         try { bridge.postMessage({}); } catch (e: any) {
+          clearTimeout(timeout);
+          applePending = null;
           reject(new Error('Could not open Apple sign-in: ' + (e?.message || 'bridge unavailable')));
         }
       });
