@@ -18,6 +18,10 @@ export function OnboardingScreen() {
   const [catPhotoFile, setCatPhotoFile] = useState<File | null>(null);
   const [catPhotoPreview, setCatPhotoPreview] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  // Marketing repost consent. Defaults on (matches the checked look this step
+  // has always had) but is a real, tappable choice now — see the checkbox
+  // below and the `allowRepost` write in nextStep().
+  const [allowRepost, setAllowRepost] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -57,17 +61,21 @@ export function OnboardingScreen() {
           thumbnailUrl = await getDownloadURL(storageRef);
         }
 
+        // allowRepost is written unconditionally — it used to live inside the
+        // `if (catName.trim())` block below, so anyone who skipped naming a
+        // cat in this flow never got their repost choice saved at all,
+        // regardless of what the checkbox showed. Cat details still only save
+        // when a name was actually entered, since competition entries (with
+        // video) are created later via the upload flow — we don't want a
+        // phantom video-less cat here.
+        const profileUpdate: Record<string, any> = { allowRepost };
         if (catName.trim()) {
-          // Save the cat details onto the user's PROFILE only. Competition
-          // entries (with video) are created later via the upload flow, so we
-          // don't create a phantom video-less cat here.
-          await updateDoc(doc(db, 'users', user.uid), {
-            catName: catName.trim(),
-            catBreed: catBreed.trim(),
-            catAge: catAge,
-            catThumbnailUrl: thumbnailUrl,
-          });
+          profileUpdate.catName = catName.trim();
+          profileUpdate.catBreed = catBreed.trim();
+          profileUpdate.catAge = catAge;
+          profileUpdate.catThumbnailUrl = thumbnailUrl;
         }
+        await updateDoc(doc(db, 'users', user.uid), profileUpdate);
 
         navigate('/home');
       } catch (error) {
@@ -268,19 +276,25 @@ export function OnboardingScreen() {
                 )}
               </motion.div>
 
-              <motion.label
+              <motion.button
+                type="button"
+                onClick={() => setAllowRepost((v) => !v)}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1.65, duration: 0.4, ease: 'easeOut' }}
-                className="flex items-start gap-3 bg-white/90 backdrop-blur-sm p-4 rounded-2xl border border-pink-50 mb-3"
+                className="w-full flex items-start gap-3 bg-white/90 backdrop-blur-sm p-4 rounded-2xl border border-pink-50 mb-3 text-left active:scale-[0.98] transition-transform"
               >
-                <div className="w-6 h-6 rounded border-2 border-pink-500 flex items-center justify-center shrink-0 mt-0.5 bg-pink-500 text-white">
+                <div
+                  className={`w-6 h-6 rounded border-2 flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
+                    allowRepost ? 'border-pink-500 bg-pink-500 text-white' : 'border-neutral-300 bg-white text-transparent'
+                  }`}
+                >
                   <Check className="w-4 h-4" />
                 </div>
                 <p className="text-xs font-medium text-neutral-600 leading-relaxed">
                   Allow us to repost your cat's best moments on our socials for exposure (you keep all rights).
                 </p>
-              </motion.label>
+              </motion.button>
 
               <motion.p
                 initial={{ opacity: 0 }}

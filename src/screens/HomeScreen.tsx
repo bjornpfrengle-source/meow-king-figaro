@@ -7,6 +7,8 @@ import { useNavigate } from 'react-router-dom';
 import { collection, query, orderBy, limit, getDocs, doc, getDoc, onSnapshot, where, getCountFromServer } from 'firebase/firestore';
 import { db } from '../firebase';
 import { ReportModal } from '../components/ReportModal';
+import { BadgedAvatar } from '../components/BadgedAvatar';
+import { topBadgeId } from '../components/rewards';
 
 interface Cat {
   id: string;
@@ -279,20 +281,29 @@ export function HomeScreen() {
             Meow Mayhem
           </h1>
         </div>
+        {/* p-2.5 -m-2.5 grows the actual tap target to ~44px (Apple's minimum)
+            without widening the visual gap between icons — these were bare
+            w-6 h-6 icons with zero hit-area padding, well under that minimum,
+            which is what made this bar specifically need repeated taps. */}
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/chat')} className="relative active:scale-95 transition-transform">
+          <button onClick={() => navigate('/chat')} className="relative p-2.5 -m-2.5 active:scale-95 transition-transform">
             <MessageCircle className="w-6 h-6 text-red-400" />
           </button>
-          <button onClick={() => navigate('/prizes')} className="relative active:scale-95 transition-transform">
+          <button onClick={() => navigate('/prizes')} className="relative p-2.5 -m-2.5 active:scale-95 transition-transform">
             <Gift className="w-6 h-6 text-red-400" />
           </button>
-          <button onClick={() => navigate('/notifications')} className="relative active:scale-95 transition-transform">
+          <button onClick={() => navigate('/notifications')} className="relative p-2.5 -m-2.5 active:scale-95 transition-transform">
             <Bell className="w-6 h-6 text-red-400 fill-red-400" />
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-teal-400 rounded-full border-2 border-[#FFF5F5]"></span>
+            <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-teal-400 rounded-full border-2 border-[#FFF5F5]"></span>
           </button>
           <button onClick={() => user ? navigate('/profile') : signIn()} className="active:scale-95 transition-transform">
             {user ? (
-              <img src={userProfile?.photoURL || user.photoURL || "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"} alt="Profile" className="w-10 h-10 rounded-full border-2 border-red-400 object-cover" referrerPolicy="no-referrer" />
+              <BadgedAvatar
+                src={userProfile?.photoURL || user.photoURL || "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?ixlib=rb-4.0.3&auto=format&fit=crop&w=150&q=80"}
+                name={userProfile?.displayName || user.displayName}
+                badgeId={topBadgeId(userProfile?.badges)}
+                size={40}
+              />
             ) : (
               <div className="w-10 h-10 rounded-full border-2 border-red-400 bg-white flex items-center justify-center text-red-400 font-bold text-xs">Login</div>
             )}
