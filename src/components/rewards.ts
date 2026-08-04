@@ -7,6 +7,12 @@ export interface Reward {
   blurb: string;
   cost: number; // vote-points needed to unlock
   icon: any;
+  /**
+   * Optional emoji shown instead of the lucide icon. Some rewards are named
+   * after things lucide simply has no glyph for — there is no yarn ball in the
+   * icon set, and a gift box for "VIP Yarn Ball" reads as the wrong reward.
+   */
+  emoji?: string;
   color: string;
   bg: string;
   /**
@@ -50,7 +56,7 @@ export const DIGITAL_REWARDS: Reward[] = [
   },
   {
     id: 'vip-yarn', title: 'VIP Yarn Ball', blurb: 'A hundred votes. Certified spoiled.',
-    cost: 100, icon: Gift, color: 'text-purple-600', bg: 'bg-purple-100',
+    cost: 100, icon: Gift, emoji: '🧶', color: 'text-purple-600', bg: 'bg-purple-100',
     ring: 'ring-4 ring-purple-500',
     glow: '0 0 14px 3px rgba(168,85,247,0.75)',
   },

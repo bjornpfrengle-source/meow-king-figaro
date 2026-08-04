@@ -71,13 +71,17 @@ service cloud.firestore {
     }
 
     function isValidCat() {
-      return hasOnlyAllowedFields(['ownerId', 'name', 'cry', 'videoUrl', 'thumbnailUrl', 'score', 'createdAt', 'isVerified', 'selectedCatId', 'breed', 'approximateAge', 'trimStart', 'trimEnd', 'theme', 'framePosition', 'species']) &&
+      return hasOnlyAllowedFields(['ownerId', 'name', 'cry', 'videoUrl', 'thumbnailUrl', 'score', 'createdAt', 'isVerified', 'selectedCatId', 'breed', 'approximateAge', 'trimStart', 'trimEnd', 'theme', 'themeId', 'framePosition', 'species']) &&
              request.resource.data.ownerId == request.auth.uid &&
              isValidString('name', 1, 50) &&
              isValidOptionalString('cry', 0, 100) &&
              isValidOptionalString('videoUrl', 1, 2000) &&
              isValidOptionalString('thumbnailUrl', 0, 2000) &&
              isValidOptionalString('theme', 0, 100) &&
+             // The theme document id. `theme` is the slug and repeats every
+             // fortnight, so it cannot identify WHICH occurrence an entry
+             // belongs to — this can.
+             isValidOptionalString('themeId', 0, 100) &&
              request.resource.data.score is number &&
              request.resource.data.createdAt is timestamp &&
              (!( 'isVerified' in request.resource.data ) || request.resource.data.isVerified is bool) &&

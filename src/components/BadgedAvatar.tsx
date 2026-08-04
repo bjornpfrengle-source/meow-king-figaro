@@ -58,14 +58,18 @@ export function BadgedAvatar({
         </div>
       )}
 
-      {reward && Icon && (
+      {reward && (
         <div
           className={`absolute -bottom-0.5 -right-0.5 rounded-full ${reward.bg} border-2 border-white shadow flex items-center justify-center`}
           style={{ width: pip, height: pip }}
           title={reward.title}
           aria-label={reward.title}
         >
-          <Icon className={reward.color} style={{ width: pip * 0.6, height: pip * 0.6 }} />
+          {reward.emoji ? (
+            <span style={{ fontSize: pip * 0.62, lineHeight: 1 }}>{reward.emoji}</span>
+          ) : (
+            Icon && <Icon className={reward.color} style={{ width: pip * 0.6, height: pip * 0.6 }} />
+          )}
         </div>
       )}
     </div>

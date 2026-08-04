@@ -139,25 +139,35 @@ export function ProfileScreen() {
       slug.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
     const build = async () => {
-      // Best score per theme among the user's own cats
-      const byTheme: Record<string, number> = {};
+      // One trophy per theme OCCURRENCE, not per slug. The roster repeats the
+      // same fortnight all year, so grouping by slug merged every drift-king
+      // you ever entered into a single trophy — and judged the champion
+      // against every drift-king entry ever submitted.
+      const groups: Record<string, { slug: string; themeId: string; best: number }> = {};
       myCats.forEach((c) => {
-        const th = (c as any).theme;
-        if (!th) return;
-        byTheme[th] = Math.max(byTheme[th] ?? -1, c.score || 0);
+        const slug = (c as any).theme;
+        if (!slug) return;
+        const themeId = (c as any).themeId || '';
+        const key = themeId || `slug:${slug}`;
+        const existing = groups[key];
+        groups[key] = {
+          slug,
+          themeId,
+          best: Math.max(existing?.best ?? -1, c.score || 0),
+        };
       });
 
       const result = await Promise.all(
-        Object.keys(byTheme).map(async (th) => {
+        Object.entries(groups).map(async ([key, g]) => {
           let champion = false;
           try {
-            const snap = await getDocs(query(collection(db, 'cats'), where('theme', '==', th)));
-            champion = isThemeWinner(
-              snap.docs.map((d) => d.data() as { ownerId?: string; score?: number }),
-              user.uid
-            );
+            const snap = await getDocs(query(collection(db, 'cats'), where('theme', '==', g.slug)));
+            const sameOccurrence = snap.docs
+              .map((d) => d.data() as any)
+              .filter((d) => (g.themeId ? d.themeId === g.themeId : !d.themeId));
+            champion = isThemeWinner(sameOccurrence, user.uid);
           } catch (e) { /* ignore */ }
-          return { theme: th, title: prettify(th), champion, votes: byTheme[th] };
+          return { theme: key, title: prettify(g.slug), champion, votes: g.best };
         })
       );
       setTrophies(result);

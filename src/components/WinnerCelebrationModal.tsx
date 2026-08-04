@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { motion } from 'motion/react';
+import { Share2 } from 'lucide-react';
 
 interface Props {
   catName: string;
@@ -19,6 +20,24 @@ const CONFETTI = Array.from({ length: 55 }, (_, i) => ({
   height: 6 + (i * 3) % 9,
   radius: i % 3 === 0 ? '50%' : '2px',
 }));
+
+/**
+ * Dismiss lines. One hardcoded "Keep Fighting!" made every win feel identical,
+ * and it's the wrong note for someone who just won — they don't need telling to
+ * keep fighting. Picked per win so a repeat champion sees something new.
+ */
+const VICTORY_LINES = [
+  'Bask in it 👑',
+  'Undisputed 🐾',
+  'Take a bow 🎀',
+  'Purrfectly done ✨',
+  'Crown secured 👑',
+  'Legendary 🏆',
+  'Nobody came close 😼',
+  'Reign on 🐈',
+  'Chaos conquered 🔥',
+  'Certified icon ⭐',
+];
 
 function playFanfare() {
   try {
@@ -43,11 +62,35 @@ function playFanfare() {
 
 export function WinnerCelebrationModal({ catName, videoUrl, themeName, votes, onClose }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [shared, setShared] = useState(false);
+
+  // Chosen once per mount so it doesn't reshuffle on re-render mid-celebration.
+  const victoryLine = useMemo(
+    () => VICTORY_LINES[Math.floor(Math.random() * VICTORY_LINES.length)],
+    []
+  );
 
   useEffect(() => {
     playFanfare();
     videoRef.current?.play().catch(() => {});
   }, []);
+
+  const shareWin = async () => {
+    const url = 'https://meow-king-figaro-production.up.railway.app';
+    const text = `👑 ${catName} just won "${themeName}" with ${votes} vote${votes !== 1 ? 's' : ''} on Cat Chaos Arena!`;
+    try {
+      // iOS gives the native share sheet here (Messages, Instagram, etc.).
+      if (navigator.share) {
+        await navigator.share({ title: 'Meow King!', text, url });
+      } else {
+        await navigator.clipboard.writeText(`${text} ${url}`);
+        setShared(true);
+        setTimeout(() => setShared(false), 2000);
+      }
+    } catch (_) {
+      // User dismissed the share sheet — not an error worth surfacing.
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-[100] bg-black flex flex-col overflow-hidden">
@@ -117,15 +160,26 @@ export function WinnerCelebrationModal({ catName, videoUrl, themeName, votes, on
           ))}
         </div>
 
-        <motion.button
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.1 }}
-          onClick={onClose}
-          className="w-full bg-gradient-to-r from-pink-500 to-orange-400 text-white font-black py-4 rounded-2xl text-xl shadow-2xl mb-10 active:scale-95 transition-transform"
+          className="mb-10 space-y-3"
         >
-          Keep Fighting! 🐾
-        </motion.button>
+          <button
+            onClick={shareWin}
+            className="w-full bg-white/15 backdrop-blur-md border border-white/30 text-white font-black py-4 rounded-2xl text-lg active:scale-95 transition-transform flex items-center justify-center gap-2"
+          >
+            <Share2 className="w-5 h-5" />
+            {shared ? 'Copied!' : 'Share the win'}
+          </button>
+          <button
+            onClick={onClose}
+            className="w-full bg-gradient-to-r from-pink-500 to-orange-400 text-white font-black py-4 rounded-2xl text-xl shadow-2xl active:scale-95 transition-transform"
+          >
+            {victoryLine}
+          </button>
+        </motion.div>
       </div>
     </div>
   );

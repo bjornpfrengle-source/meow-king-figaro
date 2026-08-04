@@ -6,7 +6,7 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
 import { useThemes } from '../components/themes';
-import { themeWinnerId } from '../components/results';
+import { themeWinnerId, belongsToOccurrence } from '../components/results';
 import { WinnerCelebrationModal } from '../components/WinnerCelebrationModal';
 
 interface CelebrationData {
@@ -90,7 +90,11 @@ export function NotificationsScreen() {
         // original recentlyEnded ordering (and the "winners float to the top"
         // behaviour) is unaffected by which request happens to finish first.
         const perTheme = await Promise.all(recentlyEnded.map(async (theme) => {
-          const userThemeCats = allUserCats.filter(c => c.theme === theme.slug);
+          // Scoped to this occurrence — the slug repeats every fortnight, so a
+          // slug-only match reported results from a previous drift-king.
+          const userThemeCats = allUserCats.filter(
+            c => c.theme === theme.slug && belongsToOccurrence(c, theme)
+          );
           if (userThemeCats.length === 0) return { winners: [] as NotifItem[], results: [] as NotifItem[] };
 
           try {
@@ -99,6 +103,7 @@ export function NotificationsScreen() {
             );
             const allCats = allCatsSnap.docs
               .map(d => ({ id: d.id, ...(d.data() as any) }))
+              .filter((c: any) => belongsToOccurrence(c, theme))
               .sort((a, b) => (b.score || 0) - (a.score || 0));
             const total = allCats.length;
 

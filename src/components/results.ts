@@ -23,6 +23,35 @@ export interface ScoredEntry {
   score?: number;
 }
 
+/**
+ * Does this entry belong to this specific occurrence of a theme?
+ *
+ * Entries join to themes by slug, and the roster repeats the same fortnight all
+ * year — `drift-king` exists roughly 26 times. A slug match therefore pulls
+ * every past occurrence's entries into the current one, which is how a clip
+ * that won drift-king last fortnight turned up in the next drift-king arena
+ * without being re-entered.
+ *
+ * New entries carry `themeId` (the theme document id, unique per occurrence).
+ * Entries written before that field existed fall back to their creation time
+ * landing inside this occurrence's window.
+ */
+export interface ThemeOccurrence {
+  id: string;
+  startMs: number;
+  endMs: number;
+}
+
+export function belongsToOccurrence(
+  entry: { themeId?: string; createdAt?: any },
+  theme: ThemeOccurrence
+): boolean {
+  if (entry.themeId) return entry.themeId === theme.id;
+  const createdMs = entry.createdAt?.toMillis?.() ?? 0;
+  if (!createdMs) return false;
+  return createdMs >= theme.startMs && createdMs < theme.endMs;
+}
+
 export function themeWinnerId(entries: ScoredEntry[]): string | null {
   let topScore = 0; // not -1: a zero-vote entry must not qualify
   let topOwner: string | null = null;

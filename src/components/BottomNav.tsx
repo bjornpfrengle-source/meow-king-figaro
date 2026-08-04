@@ -18,7 +18,11 @@ export function BottomNav() {
   ];
 
   return (
-    <div className="relative z-50 bg-white/80 backdrop-blur-xl border-t border-pink-100 px-6 py-3 pb-6 flex justify-between items-center shadow-[0_-4px_20px_rgba(0,0,0,0.05)] rounded-t-3xl">
+    /* pb clears the home indicator. At a flat pb-6 (24px) the bottom row of
+       this bar sat inside the ~34px gesture strip on modern iPhones, where iOS
+       claims the touch for its own home gesture — which is why Arena and the
+       other outer items needed two or three taps. */
+    <div className="relative z-50 bg-white/80 backdrop-blur-xl border-t border-pink-100 px-6 py-3 pb-[max(1.5rem,env(safe-area-inset-bottom))] flex justify-between items-center shadow-[0_-4px_20px_rgba(0,0,0,0.05)] rounded-t-3xl">
       {navItems.map((item) => {
         const Icon = item.icon;
         const isActive = location.pathname === item.path;
@@ -57,7 +61,7 @@ export function BottomNav() {
           <NavLink 
             key={item.path} 
             to={item.path} 
-            className={`flex flex-col items-center gap-1 p-2 transition-colors ${isActive ? 'text-red-400' : 'text-neutral-400 hover:text-red-300'}`}
+            className={`flex flex-col items-center gap-1 px-3 py-2 -mx-1 transition-colors ${isActive ? 'text-red-400' : 'text-neutral-400 hover:text-red-300'}`}
           >
             <Icon className="w-6 h-6" strokeWidth={isActive ? 2.5 : 2} />
             <span className="text-[10px] font-bold tracking-wide uppercase">{item.label}</span>

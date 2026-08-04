@@ -60,15 +60,24 @@ export function PublicProfileScreen() {
         const theirCats = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })).filter((c: any) => !!c.videoUrl);
         setCats(theirCats);
 
-        // Count "wins": themes where this user's cat is the top-voted entry
-        const themes = Array.from(new Set(theirCats.map((c: any) => c.theme).filter(Boolean)));
+        // Count "wins" per theme OCCURRENCE. Grouping by slug alone would fold
+        // every drift-king they ever entered into one, and judge them against
+        // every drift-king entry ever submitted.
+        const occurrences = new Map<string, { slug: string; themeId: string }>();
+        theirCats.forEach((c: any) => {
+          if (!c.theme) return;
+          const themeId = c.themeId || '';
+          occurrences.set(themeId || `slug:${c.theme}`, { slug: c.theme, themeId });
+        });
+
         let winCount = 0;
-        await Promise.all(themes.map(async (th) => {
+        await Promise.all(Array.from(occurrences.values()).map(async (occ) => {
           try {
-            const tsnap = await getDocs(query(collection(db, 'cats'), where('theme', '==', th)));
-            if (isThemeWinner(tsnap.docs.map((d) => d.data() as { ownerId?: string; score?: number }), uid)) {
-              winCount++;
-            }
+            const tsnap = await getDocs(query(collection(db, 'cats'), where('theme', '==', occ.slug)));
+            const sameOccurrence = tsnap.docs
+              .map((d) => d.data() as any)
+              .filter((d) => (occ.themeId ? d.themeId === occ.themeId : !d.themeId));
+            if (isThemeWinner(sameOccurrence, uid)) winCount++;
           } catch (e) { /* ignore */ }
         }));
         setWins(winCount);

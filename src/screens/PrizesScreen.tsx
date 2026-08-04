@@ -135,7 +135,9 @@ export function PrizesScreen() {
                     className={`w-12 h-12 rounded-full ${reward.bg} flex items-center justify-center flex-shrink-0 ${isClaimed ? reward.ring ?? '' : ''}`}
                     style={isClaimed && reward.glow ? { boxShadow: reward.glow } : undefined}
                   >
-                    <Icon className={`w-6 h-6 ${reward.color}`} />
+                    {reward.emoji
+                      ? <span className="text-2xl leading-none">{reward.emoji}</span>
+                      : <Icon className={`w-6 h-6 ${reward.color}`} />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-bold text-neutral-800">{reward.title}</h4>

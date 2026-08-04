@@ -74,8 +74,18 @@ export function UploadScreen() {
 
   // The theme this entry belongs to: prefer the URL (from "ENTER NOW"), else the
   // currently active theme, else a generic bucket.
+  //
+  // Matching on slug alone is not enough. The roster repeats the same fortnight
+  // all year, so `drift-king` exists ~26 times and `.find()` would happily
+  // return one from last month. Prefer the live theme when its slug matches the
+  // link, and otherwise take the occurrence running now.
   const eventSlug = searchParams.get('event');
-  const currentTheme = themes.find((t) => t.slug === eventSlug) || active || null;
+  const nowMs = Date.now();
+  const currentTheme =
+    (active && active.slug === eventSlug ? active : null) ||
+    themes.find((t) => t.slug === eventSlug && t.startMs <= nowMs && t.endMs > nowMs) ||
+    active ||
+    null;
   const themeSlug = currentTheme?.slug || eventSlug || 'general';
   const themeTitle = currentTheme?.title || 'Open Entry';
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
@@ -354,6 +364,11 @@ export function UploadScreen() {
         trimStart: 0,
         framePosition: framePosition,
         theme: theme,
+        // The specific occurrence this entry was submitted to. Kept alongside
+        // the slug (which stays for display and back-compat) because the slug
+        // repeats every fortnight — without this, an entry that won drift-king
+        // last time reappears in the next drift-king arena.
+        themeId: currentTheme?.id || '',
         species: APP_SPECIES,
         createdAt: serverTimestamp()
       });

@@ -9,7 +9,7 @@ import { useThemes } from '../components/themes';
 import { ReportModal } from '../components/ReportModal';
 import { BadgedAvatar } from '../components/BadgedAvatar';
 import { topBadgeId } from '../components/rewards';
-import { themeWinnerId } from '../components/results';
+import { themeWinnerId, belongsToOccurrence } from '../components/results';
 
 function chatTimeAgo(ts: any): string {
   if (!ts?.toDate) return 'now';
@@ -83,7 +83,10 @@ export function LeaderboardScreen() {
     const build = async () => {
       let list = [...allCats];
       if (tab === 'daily') {
-        list = active ? list.filter((c: any) => c.theme === active.slug) : [];
+        // Slug alone would include every past occurrence of today's theme.
+        list = active
+          ? list.filter((c: any) => c.theme === active.slug && belongsToOccurrence(c, active))
+          : [];
       } else if (tab === 'weekly') {
         const weekAgo = Date.now() - 7 * 86400000;
         list = list.filter((c: any) => (c.createdAt?.toMillis?.() ?? 0) >= weekAgo);
@@ -143,6 +146,7 @@ export function LeaderboardScreen() {
           const snap = await getDocs(query(collection(db, 'cats'), where('theme', '==', theme.slug)));
           const cats = snap.docs
             .map(d => ({ id: d.id, ...(d.data() as any) }))
+            .filter((c: any) => belongsToOccurrence(c, theme))
             .filter((c: any) => !!c.videoUrl)
             .sort((a: any, b: any) => (b.score || 0) - (a.score || 0));
           if (cats.length === 0) return null;

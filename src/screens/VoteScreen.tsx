@@ -8,6 +8,7 @@ import { collection, getDocs, getDoc, doc, increment, serverTimestamp, query, or
 import { auth, db } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
 import { useThemes } from '../components/themes';
+import { belongsToOccurrence } from '../components/results';
 
 interface Cat {
   id: string;
@@ -125,10 +126,19 @@ export function VoteScreen() {
         // Only entries submitted for TODAY'S theme may battle. Without this the
         // arena accumulates every clip ever uploaded, so yesterday's cats keep
         // competing forever and each new theme never gets a clean slate.
+        //
+        // Matched on themeId, not slug. The roster repeats the same fortnight
+        // all year, so `drift-king` comes round every two weeks and a slug
+        // match pulled the PREVIOUS drift-king's entries into the new one —
+        // last fortnight's winner was still in the arena without being
+        // re-entered. Legacy entries written before themeId existed are still
+        // matched by slug, but only if they were created during this
+        // occurrence's window.
         const q = query(collection(db, 'cats'), where('theme', '==', active.slug));
         const snapshot = await getDocs(q);
         const fetchedCats = snapshot.docs
           .map(doc => ({ id: doc.id, ...doc.data() } as Cat))
+          .filter((c: any) => belongsToOccurrence(c, active))
           .filter((c: any) => !!c.videoUrl); // only real video entries can battle
 
         // Shuffle the cats array locally for random matchups
