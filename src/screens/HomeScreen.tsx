@@ -8,6 +8,7 @@ import { collection, query, orderBy, limit, getDocs, doc, getDoc, onSnapshot, wh
 import { db } from '../firebase';
 import { ReportModal } from '../components/ReportModal';
 import { BadgedAvatar } from '../components/BadgedAvatar';
+import { LazyVideo } from '../components/LazyVideo';
 import { topBadgeId } from '../components/rewards';
 
 interface Cat {
@@ -445,9 +446,16 @@ export function HomeScreen() {
                 ref={trendingVideoRef}
                 src={trendingCat.videoUrl}
                 className="w-full h-full object-cover"
+                // The hero of this screen, so it's the one video that loads
+                // eagerly. Everything else on Home is lazy so this gets the
+                // bandwidth and the decoder slot instead of queueing behind
+                // three thumbnail-sized clips.
+                preload="auto"
+                poster={(trendingCat as any).thumbnailUrl || undefined}
                 autoPlay loop muted playsInline
                 onLoadedMetadata={(e) => {
                   if (trendingCat.trimStart) e.currentTarget.currentTime = trendingCat.trimStart;
+                  e.currentTarget.play().catch(() => {});
                 }}
                 onTimeUpdate={(e) => {
                   if (trendingCat.trimStart !== undefined && trendingCat.trimEnd !== undefined) {
@@ -520,21 +528,15 @@ export function HomeScreen() {
               {recentWinners.map((cat, index) => (
                 <motion.div layout key={cat.id} className="flex flex-col items-center flex-1">
                   <div className={`relative w-full aspect-square rounded-full border-4 p-1 mb-2 ${index === 0 ? 'border-yellow-400' : 'border-neutral-200'}`}>
-                    <video
+                    {/* Lazy: these are ~80px circles that were each pulling a
+                        full 720p clip on load, starving the Trending hero
+                        above them of bandwidth and decode slots. */}
+                    <LazyVideo
                       src={cat.videoUrl}
                       className="w-full h-full object-cover rounded-full cursor-pointer"
-                      autoPlay loop muted playsInline
-                      onClick={(e) => playFullscreen(e.currentTarget, cat.trimStart)}
-                      onLoadedMetadata={(e) => {
-                        if (cat.trimStart) e.currentTarget.currentTime = cat.trimStart;
-                      }}
-                      onTimeUpdate={(e) => {
-                        if (cat.trimStart !== undefined && cat.trimEnd !== undefined) {
-                          if (e.currentTarget.currentTime >= cat.trimEnd || e.currentTarget.currentTime < cat.trimStart) {
-                            e.currentTarget.currentTime = cat.trimStart;
-                          }
-                        }
-                      }}
+                      trimStart={cat.trimStart}
+                      trimEnd={cat.trimEnd}
+                      onClick={(el) => playFullscreen(el, cat.trimStart)}
                     />
                     <div className={`absolute -top-2 -left-2 text-white w-7 h-7 rounded-full flex items-center justify-center font-black text-xs border-2 border-white ${index === 0 ? 'bg-yellow-400 text-neutral-900' : 'bg-teal-400'}`}>
                       #{index + 1}

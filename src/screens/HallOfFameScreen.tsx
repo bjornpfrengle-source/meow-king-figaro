@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { collection, query, orderBy, limit, getDocs, getDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useFirebase } from '../components/FirebaseProvider';
+import { LazyVideo } from '../components/LazyVideo';
 
 interface HofCat {
   id: string;
@@ -121,12 +122,13 @@ export function HallOfFameScreen() {
               {/* Tappable video / thumbnail */}
               <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-white shadow-sm shrink-0 bg-black">
                 {cat.videoUrl ? (
-                  <video
+                  /* This list runs to 50 entries — every one was autoplaying a
+                     full clip inside a 64px tile on mount. */
+                  <LazyVideo
                     src={cat.videoUrl}
                     className="w-full h-full object-cover cursor-pointer"
-                    autoPlay loop muted playsInline
-                    onClick={(e) => playFullscreen(e.currentTarget, cat.trimStart)}
-                    onLoadedMetadata={(e) => { if (cat.trimStart) e.currentTarget.currentTime = cat.trimStart; }}
+                    trimStart={cat.trimStart}
+                    onClick={(el) => playFullscreen(el, cat.trimStart)}
                   />
                 ) : (
                   <img src={cat.thumbnailUrl || 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=150&q=80'} alt={cat.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />

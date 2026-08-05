@@ -4,6 +4,7 @@ import { Settings, Award, Plus, Video, ToggleRight, ToggleLeft, Trophy, Grid, Lo
 import { CommentsSheet } from '../components/CommentsSheet';
 import { DIGITAL_REWARDS } from '../components/rewards';
 import { isThemeWinner } from '../components/results';
+import { LazyVideo } from '../components/LazyVideo';
 import { useNavigate } from 'react-router-dom';
 import { collection, query, where, orderBy, getDocs, doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { ref, deleteObject } from 'firebase/storage';
@@ -421,21 +422,11 @@ export function ProfileScreen() {
                   {cat.thumbnailUrl ? (
                     <img src={cat.thumbnailUrl} className="w-full h-full object-cover" />
                   ) : (
-                    <video 
-                      src={cat.videoUrl} 
-                      className="w-full h-full object-cover" 
-                      autoPlay loop muted playsInline 
-                      onLoadedMetadata={(e) => {
-                        if (cat.trimStart) e.currentTarget.currentTime = cat.trimStart;
-                      }}
-                      onTimeUpdate={(e) => {
-                        const { trimStart, trimEnd } = cat;
-                        if (trimStart !== undefined && trimEnd !== undefined) {
-                          if (e.currentTarget.currentTime >= trimEnd || e.currentTarget.currentTime < trimStart) {
-                            e.currentTarget.currentTime = trimStart;
-                          }
-                        }
-                      }}
+                    <LazyVideo
+                      src={cat.videoUrl}
+                      className="w-full h-full object-cover"
+                      trimStart={cat.trimStart}
+                      trimEnd={cat.trimEnd}
                     />
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex flex-col justify-end p-3">
