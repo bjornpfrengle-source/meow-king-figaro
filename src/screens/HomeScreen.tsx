@@ -359,7 +359,10 @@ export function HomeScreen() {
         {/* Upcoming Event Banners */}
         {upcoming.length > 0 && (
           <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 mt-4 pb-2 -mx-6 px-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            {upcoming.map((t, i) => (
+            {/* Only the next few. The roster is seeded a year out, so the full
+                upcoming list is a long swipe of mostly-locked placeholder
+                cards — which reads as a paywall wall rather than a tease. */}
+            {upcoming.slice(0, 5).map((t, i) => (
               <motion.div
                 key={t.id}
                 initial={{ opacity: 0, x: 20 }}

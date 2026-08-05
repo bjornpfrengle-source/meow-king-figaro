@@ -23,7 +23,17 @@ export interface Theme {
  * than a locked door.
  */
 export const PREMIUM_PREVIEW_MS = 72 * 60 * 60 * 1000; // 3 days
-export const FREE_PREVIEW_MS = 12 * 60 * 60 * 1000; // 12 hours
+/**
+ * 24h, not 12h. At 12 hours a free user opening the app during the day never
+ * saw tomorrow's theme at all — it only unlocked late evening, most of which
+ * they were asleep for, so there was no planning time and no reason to come
+ * back tomorrow. Catching a cat mid-zoomie can't be done on demand.
+ *
+ * A full day means free users always see tomorrow; members still get three,
+ * which is an easier thing to sell ("the week ahead" vs "tomorrow") than the
+ * old half-day-versus-three-days gap.
+ */
+export const FREE_PREVIEW_MS = 24 * 60 * 60 * 1000; // 1 day
 
 /** Can this user see the details of an upcoming theme yet? */
 export function isThemeRevealed(theme: Theme, isPremium: boolean, nowMs: number = Date.now()) {
