@@ -66,17 +66,42 @@ function computeActivityBase() {
   return Math.round(dailyBase * curve);
 }
 
+/**
+ * Home's data, kept alive across navigation.
+ *
+ * React Router unmounts this screen the moment you tap Vote or Arena, so
+ * coming back re-ran every fetch on it — a top-cats snapshot with a user
+ * lookup each, a count query, then 25 cat docs plus 10 owner docs for Kitty
+ * Kingdom. Roughly 40 reads and a completely fresh set of <video> elements
+ * every time you returned to Home, which is why it re-loaded and stuttered on
+ * each visit rather than loading once when the app opened.
+ *
+ * Module scope rather than state, so it genuinely survives unmount. The screen
+ * paints from this instantly and refreshes underneath.
+ */
+const homeCache: {
+  topCats: Cat[] | null;
+  kingdom: KingdomCat[] | null;
+  catCount: number | null;
+  fetchedAt: number;
+} = { topCats: null, kingdom: null, catCount: null, fetchedAt: 0 };
+
+/** How long cached Home data is served before a background refresh. */
+const HOME_CACHE_MS = 5 * 60 * 1000;
+
 export function HomeScreen() {
   const navigate = useNavigate();
   const { user, userProfile, signIn, isPremium } = useFirebase();
   const { active, upcoming } = useThemes();
-  const [topCats, setTopCats] = useState<Cat[]>([]);
+  const [topCats, setTopCats] = useState<Cat[]>(homeCache.topCats ?? []);
   const [totalCats, setTotalCats] = useState(computeActivityBase);
-  const [realCatCount, setRealCatCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [realCatCount, setRealCatCount] = useState(homeCache.catCount ?? 0);
+  // Only show the spinner on a genuinely cold start. Returning to Home with
+  // cached data should paint immediately, not flash a loader.
+  const [loading, setLoading] = useState(homeCache.topCats === null);
   const [reportTarget, setReportTarget] = useState<{ id: string; name: string } | null>(null);
   const [activeCommentCatId, setActiveCommentCatId] = useState<string | null>(null);
-  const [kingdomCats, setKingdomCats] = useState<KingdomCat[]>([]);
+  const [kingdomCats, setKingdomCats] = useState<KingdomCat[]>(homeCache.kingdom ?? []);
   const [kingdomLikes, setKingdomLikes] = useState<Record<string, boolean>>({});
   const [kingdomVideo, setKingdomVideo] = useState<KingdomCat | null>(null);
   const [announcement, setAnnouncement] = useState<{ id: string; title: string; body?: string; videoUrl?: string; ctaLabel?: string; ctaUrl?: string } | null>(null);
@@ -179,6 +204,8 @@ export function HomeScreen() {
           }
           return { id: catDoc.id, ...data, ownerImg } as Cat;
         }));
+        homeCache.topCats = fetchedCats;
+        homeCache.fetchedAt = Date.now();
         setTopCats(fetchedCats);
       } catch (error) {
         console.error('Error processing top cats:', error);
@@ -197,7 +224,10 @@ export function HomeScreen() {
     // returns the count alone and costs a single read.
     let cancelled = false;
     getCountFromServer(collection(db, 'cats'))
-      .then((res) => { if (!cancelled) setRealCatCount(res.data().count); })
+      .then((res) => {
+        homeCache.catCount = res.data().count;
+        if (!cancelled) setRealCatCount(res.data().count);
+      })
       .catch((e) => console.error('Error counting cats:', e));
 
     return () => {
@@ -207,6 +237,13 @@ export function HomeScreen() {
   }, []);
 
   useEffect(() => {
+    // Kitty Kingdom is 25 cat docs plus 10 owner lookups — by far the most
+    // expensive thing on this screen, and it re-ran on every return to Home.
+    // It's a daily-shuffled feature row, not live data, so serving it from
+    // cache for a few minutes is exactly right.
+    if (homeCache.kingdom && Date.now() - homeCache.fetchedAt < HOME_CACHE_MS) {
+      return;
+    }
     const fetchKingdom = async () => {
       try {
         const snap = await getDocs(query(collection(db, 'cats'), orderBy('score', 'desc'), limit(25)));
@@ -256,6 +293,8 @@ export function HomeScreen() {
           } as KingdomCat;
         }));
 
+        homeCache.kingdom = withOwners;
+        homeCache.fetchedAt = Date.now();
         setKingdomCats(withOwners);
       } catch (e) {
         console.error('Error fetching Kitty Kingdom:', e);
@@ -275,7 +314,11 @@ export function HomeScreen() {
       {/* Header */}
       {/* pt clears the status bar / notch — without it the header's top edge
           runs underneath system UI and taps land short. */}
-      <div className="pt-[max(1rem,env(safe-area-inset-top))] pb-4 px-6 flex justify-between items-center bg-[#FFF5F5]/70 backdrop-blur-xl sticky top-0 z-20">
+      {/* Solid background, not backdrop-blur. A blurred sticky bar has to
+          recomposite the blur every frame against whatever scrolls beneath it,
+          and with autoplaying video underneath that runs on the main thread
+          and makes the header itself feel laggy to tap. */}
+      <div className="pt-[max(1rem,env(safe-area-inset-top))] pb-4 px-6 flex justify-between items-center bg-[#FFF5F5] sticky top-0 z-20 border-b border-pink-100/50">
         <div className="flex items-center gap-2">
           <div className="w-10 h-10 bg-red-400 rounded-full flex items-center justify-center shadow-sm">
             <PawPrint className="w-5 h-5 text-white fill-white" />
@@ -533,6 +576,7 @@ export function HomeScreen() {
                         above them of bandwidth and decode slots. */}
                     <LazyVideo
                       src={cat.videoUrl}
+                      wrapperClassName="w-full h-full"
                       className="w-full h-full object-cover rounded-full cursor-pointer"
                       trimStart={cat.trimStart}
                       trimEnd={cat.trimEnd}

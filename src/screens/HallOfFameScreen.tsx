@@ -126,6 +126,7 @@ export function HallOfFameScreen() {
                      full clip inside a 64px tile on mount. */
                   <LazyVideo
                     src={cat.videoUrl}
+                    wrapperClassName="w-full h-full"
                     className="w-full h-full object-cover cursor-pointer"
                     trimStart={cat.trimStart}
                     onClick={(el) => playFullscreen(el, cat.trimStart)}

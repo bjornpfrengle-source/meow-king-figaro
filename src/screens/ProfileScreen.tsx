@@ -424,6 +424,7 @@ export function ProfileScreen() {
                   ) : (
                     <LazyVideo
                       src={cat.videoUrl}
+                      wrapperClassName="w-full h-full"
                       className="w-full h-full object-cover"
                       trimStart={cat.trimStart}
                       trimEnd={cat.trimEnd}
