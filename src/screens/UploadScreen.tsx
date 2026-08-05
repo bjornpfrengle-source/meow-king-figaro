@@ -265,9 +265,21 @@ export function UploadScreen() {
         const xhr = new XMLHttpRequest();
         xhr.open('POST', '/api/process-video');
         xhr.responseType = 'blob';
-        xhr.timeout = 5 * 60 * 1000; // 5 min ceiling
+        // 20 minutes, not 5. Phone footage is routinely 40-70MB and mobile
+        // upload speeds around 1-2 Mbps make that a 6-8 minute transfer — the
+        // old 5 minute ceiling aborted perfectly good uploads mid-flight and
+        // reported it as "that took too long, try a shorter clip", which reads
+        // as a duration limit and sent people hunting for shorter videos.
+        // The real fix is trimming on the device so there is no 45MB upload at
+        // all; until then the ceiling must not be shorter than a normal upload.
+        xhr.timeout = 20 * 60 * 1000;
         xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable) setUploadProgress(Math.round((e.loaded / e.total) * 100));
+          if (e.lengthComputable) {
+            setUploadProgress(Math.round((e.loaded / e.total) * 100));
+            const mbSent = e.loaded / 1024 / 1024;
+            const mbTotal = e.total / 1024 / 1024;
+            setStage(`Uploading ${mbSent.toFixed(0)} of ${mbTotal.toFixed(0)} MB…`);
+          }
         };
         xhr.upload.onload = () => setStage('Optimizing your clip…');
         xhr.onload = () => {
@@ -299,7 +311,13 @@ export function UploadScreen() {
           }
         };
         xhr.onerror = () => reject(new Error('Network error during upload. Please try again.'));
-        xhr.ontimeout = () => reject(new Error('That took too long — try a shorter clip or a stronger connection.'));
+        // Explicitly NOT "try a shorter clip" — the clip length is never the
+        // reason this fires. It's the size of the original file against a slow
+        // connection, and telling someone to shorten the video sends them
+        // chasing the wrong thing.
+        xhr.ontimeout = () => reject(new Error(
+          'The upload stopped before it finished — your connection dropped or is very slow. Your video is fine; try again on stronger signal or Wi-Fi.'
+        ));
 
         const fd = new FormData();
         fd.append('trimStart', String(trimStart));
