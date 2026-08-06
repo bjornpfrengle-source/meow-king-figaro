@@ -9,6 +9,7 @@ import { useFirebase } from '../components/FirebaseProvider';
 import { useThemes } from '../components/themes';
 import { APP_SPECIES } from '../components/species';
 import { FREE_UPLOADS_PER_MONTH, startOfMonthMs, nextResetLabel } from '../components/limits';
+import { trimClientSide } from '../components/clientTrim';
 
 /** Clip length caps. Catnip Club members get double the runway. */
 const FREE_MAX_SECONDS = 15;
@@ -259,7 +260,34 @@ export function UploadScreen() {
       // The end of the selected clip window (15s free, 30s for Catnip Club)
       const trimEndVal = duration > maxSeconds ? trimStart + maxSeconds : (duration || maxSeconds);
 
-      // 1. Send the raw video to the server to trim + web-optimize it
+      // 1a. Trim on-device first if the browser can do it (Safari/WebKit —
+      // the only engine this app ever runs in). This is what actually fixes
+      // slow uploads: a 70MB original trimmed to a 20-second window becomes
+      // maybe 10-15MB of *encoded* video before it ever crosses the network,
+      // instead of sending the whole original and trimming it server-side
+      // after the fact. Falls back to the untouched original file (and the
+      // server doing the trim, exactly as before) if captureStream/MediaRecorder
+      // isn't available for any reason — this is a pure improvement, not a
+      // replacement path that can break uploads if it fails.
+      let uploadPayload: Blob = videoFile;
+      let payloadTrimStart = trimStart;
+      let payloadTrimEnd = trimEndVal;
+      if (duration > 0) {
+        setStage('Trimming your clip…');
+        const trimmed = await trimClientSide(videoFile, trimStart, trimEndVal, (frac) => {
+          setUploadProgress(Math.round(frac * 100));
+          setStage(`Trimming your clip… ${Math.round(frac * 100)}%`);
+        });
+        if (trimmed) {
+          uploadPayload = trimmed;
+          payloadTrimStart = 0;
+          payloadTrimEnd = trimEndVal - trimStart;
+        }
+        setUploadProgress(0);
+      }
+
+      // 1b. Send the (now hopefully much smaller) clip to the server to
+      // re-encode consistently and run moderation.
       setStage('Uploading video…');
       const processedBlob = await new Promise<Blob>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
@@ -269,9 +297,9 @@ export function UploadScreen() {
         // upload speeds around 1-2 Mbps make that a 6-8 minute transfer — the
         // old 5 minute ceiling aborted perfectly good uploads mid-flight and
         // reported it as "that took too long, try a shorter clip", which reads
-        // as a duration limit and sent people hunting for shorter videos.
-        // The real fix is trimming on the device so there is no 45MB upload at
-        // all; until then the ceiling must not be shorter than a normal upload.
+        // as a duration limit and sent people hunting for shorter videos. Now
+        // that most uploads are pre-trimmed on-device this should rarely be
+        // tested, but it stays generous as a safety net for the fallback path.
         xhr.timeout = 20 * 60 * 1000;
         xhr.upload.onprogress = (e) => {
           if (e.lengthComputable) {
@@ -320,9 +348,9 @@ export function UploadScreen() {
         ));
 
         const fd = new FormData();
-        fd.append('trimStart', String(trimStart));
-        fd.append('trimEnd', String(trimEndVal));
-        fd.append('video', videoFile);
+        fd.append('trimStart', String(payloadTrimStart));
+        fd.append('trimEnd', String(payloadTrimEnd));
+        fd.append('video', uploadPayload, 'clip.mp4');
         xhr.send(fd);
       });
 
