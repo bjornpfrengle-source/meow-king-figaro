@@ -6,6 +6,7 @@ import { Readable } from "stream";
 import multer from "multer";
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegStatic from "ffmpeg-static";
+import sharp from "sharp";
 import { GoogleGenAI } from "@google/genai";
 
 // Prefer the bundled static binary; fall back to system ffmpeg (installed via nixpacks)
@@ -89,28 +90,57 @@ function buildConfettiFilter(): string {
     .join(",");
 }
 
-// User-supplied cat/theme names can contain characters that are meaningful
-// to ffmpeg's filter parser (: ' \ %) — rather than trying to escape those
-// correctly inline, strip anything that isn't plain printable ASCII. This
-// also silently drops emoji the bundled font has no glyph for anyway.
-function sanitizeForDrawtext(s: string, maxLen: number): string {
-  const cleaned = s
-    .replace(/'/g, "’")
-    .replace(/[^\x20-\x7E’]/g, "")
-    .replace(/[\\:%]/g, "")
-    .trim();
-  return (cleaned.slice(0, maxLen) || "Champion").replace(/"/g, "");
+// Text used to be burned in via ffmpeg's drawtext filter. That crashed every
+// single render on Railway (exit code 8, "Error opening output file")
+// because ffmpeg-static's binary is a minimal build without libfreetype —
+// drawtext is an optional filter that needs it, unlike the core filters
+// (scale, drawbox, overlay) used elsewhere here. A real system ffmpeg with
+// freetype was tried before via nixpacks.toml and reverted for breaking the
+// Railway deploy entirely, so that route is off the table.
+//
+// Instead the text is rendered as an SVG (with the font embedded as base64,
+// so it never depends on fonts being installed anywhere) and rasterized to a
+// transparent PNG via sharp — a completely separate rendering path from
+// ffmpeg that doesn't touch freetype/fontconfig at all. The PNG is then
+// composited onto the video with ffmpeg's `overlay` filter, which (like
+// drawbox) is a core filter present in every ffmpeg build.
+// Read once at boot rather than per-request. Guarded so a missing/unreadable
+// font file degrades the share-video feature (text renders without the
+// embedded font) instead of crashing the whole server on startup.
+let SHARE_FONT_B64 = "";
+try {
+  SHARE_FONT_B64 = fs.readFileSync(SHARE_FONT_PATH).toString("base64");
+} catch (e) {
+  console.error(`Could not read share-video font at ${SHARE_FONT_PATH} — share-video text will use a fallback font:`, e);
 }
 
-function buildTextFilter(catName: string, themeName: string, votes: number): string {
-  const cat = sanitizeForDrawtext(catName, 20);
-  const theme = sanitizeForDrawtext(themeName, 22);
-  const voteLine = `won "${theme}" ${String.fromCharCode(183)} ${votes} vote${votes !== 1 ? "s" : ""}`;
-  return [
-    `drawtext=fontfile=${SHARE_FONT_PATH}:text='MEOW KING':fontsize=84:fontcolor=white:borderw=4:bordercolor=black@0.6:x=(w-text_w)/2:y=h*0.09`,
-    `drawtext=fontfile=${SHARE_FONT_PATH}:text='${cat}':fontsize=44:fontcolor=0xFFD93D:borderw=3:bordercolor=black@0.6:x=(w-text_w)/2:y=h*0.09+110`,
-    `drawtext=fontfile=${SHARE_FONT_PATH}:text='${voteLine}':fontsize=26:fontcolor=white@0.9:borderw=2:bordercolor=black@0.6:x=(w-text_w)/2:y=h*0.09+165`,
-  ].join(",");
+function escapeXml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function sanitizeText(s: string, maxLen: number): string {
+  const cleaned = s.replace(/[^\x20-\x7E]/g, "").trim();
+  return cleaned.slice(0, maxLen) || "Champion";
+}
+
+// Fixed 720x1280 canvas — scale2ref (used when compositing, below) scales
+// this to match whatever the actual source video's dimensions turn out to
+// be, so the exact canvas size here doesn't need to match the real clip.
+async function buildTextOverlayPng(catName: string, themeName: string, votes: number): Promise<Buffer> {
+  const cat = escapeXml(sanitizeText(catName, 20));
+  const theme = escapeXml(sanitizeText(themeName, 22));
+  const voteLine = `won &quot;${theme}&quot; ${String.fromCharCode(183)} ${votes} vote${votes !== 1 ? "s" : ""}`;
+  const svg = `
+    <svg width="720" height="1280" xmlns="http://www.w3.org/2000/svg">
+      <defs><style>
+        @font-face { font-family: 'ShareFont'; src: url(data:font/ttf;base64,${SHARE_FONT_B64}) format('truetype'); }
+        text { font-family: 'ShareFont'; }
+      </style></defs>
+      <text x="50%" y="130" font-size="84" fill="white" stroke="black" stroke-width="4" text-anchor="middle" paint-order="stroke">MEOW KING</text>
+      <text x="50%" y="230" font-size="44" fill="#FFD93D" stroke="black" stroke-width="3" text-anchor="middle" paint-order="stroke">${cat}</text>
+      <text x="50%" y="285" font-size="26" fill="white" stroke="black" stroke-width="2" text-anchor="middle" paint-order="stroke">${voteLine}</text>
+    </svg>`;
+  return sharp(Buffer.from(svg)).png().toBuffer();
 }
 
 async function startServer() {
@@ -250,9 +280,11 @@ async function startServer() {
     }
 
     const inputPath = path.join(os.tmpdir(), `sharesrc_${Date.now()}_${Math.random().toString(36).slice(2)}.mp4`);
+    const overlayPath = path.join(os.tmpdir(), `shareoverlay_${Date.now()}_${Math.random().toString(36).slice(2)}.png`);
     const outputPath = path.join(os.tmpdir(), `share_${Date.now()}_${Math.random().toString(36).slice(2)}.mp4`);
     const cleanup = () => {
       fs.unlink(inputPath, () => {});
+      fs.unlink(overlayPath, () => {});
       fs.unlink(outputPath, () => {});
     };
 
@@ -272,20 +304,35 @@ async function startServer() {
         nodeStream.on("error", reject);
       });
 
-      const vf = [
-        "scale='min(720,iw)':-2",
-        buildConfettiFilter(),
-        buildTextFilter(String(catName || "Champion"), String(themeName || ""), Number(votes) || 0),
-      ].join(",");
+      const overlayPng = await buildTextOverlayPng(
+        String(catName || "Champion"),
+        String(themeName || ""),
+        Number(votes) || 0
+      );
+      fs.writeFileSync(overlayPath, overlayPng);
+
+      // Two inputs: the looped source clip, and the text/logo overlay PNG.
+      // scale2ref resizes the PNG (rendered at a fixed 720x1280 canvas) to
+      // exactly match the video's real post-scale dimensions before
+      // overlay — without it a portrait vs. landscape source would misalign
+      // the text. Confetti (core drawbox filters, no external deps) is drawn
+      // onto the video track before the overlay is composited on top.
+      const filterComplex =
+        `[0:v]scale='min(720,iw)':-2,${buildConfettiFilter()}[bg];` +
+        `[1:v][bg]scale2ref[fg][bg2];` +
+        `[bg2][fg]overlay=0:0:format=auto[outv]`;
 
       await new Promise<void>((resolve, reject) => {
         ffmpeg(inputPath)
           .inputOptions(["-stream_loop", "-1"])
-          .duration(SHARE_VIDEO_SECONDS)
-          .videoFilters(vf)
-          .videoCodec("libx264")
-          .audioCodec("aac")
+          .input(overlayPath)
+          .complexFilter(filterComplex, [])
           .outputOptions([
+            "-map", "[outv]",
+            "-map", "0:a?",
+            "-t", String(SHARE_VIDEO_SECONDS),
+            "-c:v", "libx264",
+            "-c:a", "aac",
             "-preset veryfast",
             "-crf 23",
             "-profile:v main",
