@@ -19,6 +19,18 @@ service firebase.storage {
       allow delete: if request.auth != null && request.auth.uid == userId;
     }
 
+    // Packaged "share the win" videos (confetti + MEOW KING overlay burned
+    // in server-side), one per cat, generated after the fact once it wins.
+    // Same shape as videos/{userId}/{fileName} above.
+    match /shareVideos/{userId}/{fileName} {
+      allow read: if true;
+      allow create, update: if request.auth != null
+                   && request.auth.uid == userId
+                   && request.resource.size < 50 * 1024 * 1024
+                   && request.resource.contentType.matches('video/.*');
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+
     // Cat thumbnail images
     match /thumbnails/{fileName} {
       allow read: if true;

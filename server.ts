@@ -2,6 +2,7 @@ import express from "express";
 import path from "path";
 import os from "os";
 import fs from "fs";
+import { Readable } from "stream";
 import multer from "multer";
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegStatic from "ffmpeg-static";
@@ -56,9 +57,66 @@ async function moderateFrame(imagePath: string): Promise<{ safe: boolean; reason
   }
 }
 
+// --- Share video generation ---------------------------------------------
+// Burns a confetti + "MEOW KING" overlay onto a winning clip so users can
+// share an actual video to socials, instead of a link that makes people log
+// in. Confetti piece math mirrors WinnerCelebrationModal.tsx's CONFETTI
+// array (deterministic, not random — same shape every render) so the
+// exported clip matches what people actually saw on the celebration screen.
+// Capped at 36 pieces instead of the app's 55: each is a chained drawbox
+// filter, and beyond ~36 render time climbed with no visible difference at
+// video resolution.
+const SHARE_VIDEO_SECONDS = 15;
+const CONFETTI_COLORS = ["0xFF6B6B", "0xFFD93D", "0x6BCB77", "0x4D96FF", "0xFF6BD6", "0xFF9A3C"];
+const SHARE_FONT_PATH = path.join(process.cwd(), "assets", "fonts", "DejaVuSans-Bold.ttf");
+
+function buildConfettiFilter(): string {
+  const pieces = Array.from({ length: 36 }, (_, i) => ({
+    left: (i * 2.9) % 100,
+    color: CONFETTI_COLORS[i % 6],
+    delay: (i * 0.09) % 3.2,
+    duration: 2.4 + ((i * 0.07) % 2),
+    size: 6 + ((i * 3) % 9),
+  }));
+  return pieces
+    .map((p) => {
+      const x = `iw*${(p.left / 100).toFixed(4)}`;
+      const y =
+        `if(lt(t,${p.delay.toFixed(3)}),-50,` +
+        `-${p.size}+mod(t-${p.delay.toFixed(3)},${p.duration.toFixed(3)})/${p.duration.toFixed(3)}*(ih+${p.size * 2}))`;
+      return `drawbox=x='${x}':y='${y}':w=${p.size}:h=${p.size}:color=${p.color}@0.9:t=fill`;
+    })
+    .join(",");
+}
+
+// User-supplied cat/theme names can contain characters that are meaningful
+// to ffmpeg's filter parser (: ' \ %) — rather than trying to escape those
+// correctly inline, strip anything that isn't plain printable ASCII. This
+// also silently drops emoji the bundled font has no glyph for anyway.
+function sanitizeForDrawtext(s: string, maxLen: number): string {
+  const cleaned = s
+    .replace(/'/g, "’")
+    .replace(/[^\x20-\x7E’]/g, "")
+    .replace(/[\\:%]/g, "")
+    .trim();
+  return (cleaned.slice(0, maxLen) || "Champion").replace(/"/g, "");
+}
+
+function buildTextFilter(catName: string, themeName: string, votes: number): string {
+  const cat = sanitizeForDrawtext(catName, 20);
+  const theme = sanitizeForDrawtext(themeName, 22);
+  const voteLine = `won "${theme}" ${String.fromCharCode(183)} ${votes} vote${votes !== 1 ? "s" : ""}`;
+  return [
+    `drawtext=fontfile=${SHARE_FONT_PATH}:text='MEOW KING':fontsize=84:fontcolor=white:borderw=4:bordercolor=black@0.6:x=(w-text_w)/2:y=h*0.09`,
+    `drawtext=fontfile=${SHARE_FONT_PATH}:text='${cat}':fontsize=44:fontcolor=0xFFD93D:borderw=3:bordercolor=black@0.6:x=(w-text_w)/2:y=h*0.09+110`,
+    `drawtext=fontfile=${SHARE_FONT_PATH}:text='${voteLine}':fontsize=26:fontcolor=white@0.9:borderw=2:bordercolor=black@0.6:x=(w-text_w)/2:y=h*0.09+165`,
+  ].join(",");
+}
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
+  app.use(express.json());
 
   // Uploaded originals are streamed to a temp file. The whole point of this
   // endpoint is that people shoot a long clip on their phone and we cut it down
@@ -173,6 +231,87 @@ async function startServer() {
             "We couldn't read that video file. It may be an unusual format — " +
             "try recording or exporting it again.",
         });
+      }
+    }
+  });
+
+  // Renders the packaged share video: fetches the already-trimmed winning
+  // clip from its public Storage URL (no auth needed, it's already public —
+  // the same URL the app plays it from), loops it to a fixed 15s so short
+  // clips still get the full confetti animation, burns in the overlay, and
+  // streams the mp4 straight back. The client uploads the result to Storage
+  // itself and stamps it on the cat doc — this endpoint has no Firebase
+  // Admin credentials and isn't meant to.
+  app.post("/api/generate-share-video", async (req, res) => {
+    const { videoUrl, catName, themeName, votes } = req.body || {};
+    if (!videoUrl || typeof videoUrl !== "string") {
+      res.status(400).json({ error: "videoUrl required" });
+      return;
+    }
+
+    const inputPath = path.join(os.tmpdir(), `sharesrc_${Date.now()}_${Math.random().toString(36).slice(2)}.mp4`);
+    const outputPath = path.join(os.tmpdir(), `share_${Date.now()}_${Math.random().toString(36).slice(2)}.mp4`);
+    const cleanup = () => {
+      fs.unlink(inputPath, () => {});
+      fs.unlink(outputPath, () => {});
+    };
+
+    try {
+      const sourceRes = await fetch(videoUrl);
+      if (!sourceRes.ok || !sourceRes.body) {
+        res.status(400).json({ error: "fetch_failed", message: "Couldn't load the source clip." });
+        return;
+      }
+      await new Promise<void>((resolve, reject) => {
+        const dest = fs.createWriteStream(inputPath);
+        // @ts-ignore - Node's fetch body is a web ReadableStream here
+        const nodeStream = Readable.fromWeb(sourceRes.body);
+        nodeStream.pipe(dest);
+        dest.on("finish", () => resolve());
+        dest.on("error", reject);
+        nodeStream.on("error", reject);
+      });
+
+      const vf = [
+        "scale='min(720,iw)':-2",
+        buildConfettiFilter(),
+        buildTextFilter(String(catName || "Champion"), String(themeName || ""), Number(votes) || 0),
+      ].join(",");
+
+      await new Promise<void>((resolve, reject) => {
+        ffmpeg(inputPath)
+          .inputOptions(["-stream_loop", "-1"])
+          .duration(SHARE_VIDEO_SECONDS)
+          .videoFilters(vf)
+          .videoCodec("libx264")
+          .audioCodec("aac")
+          .outputOptions([
+            "-preset veryfast",
+            "-crf 23",
+            "-profile:v main",
+            "-level 4.0",
+            "-pix_fmt yuv420p",
+            "-b:a 128k",
+            "-movflags +faststart",
+          ])
+          .on("end", () => resolve())
+          .on("error", (err) => reject(err))
+          .save(outputPath);
+      });
+
+      res.setHeader("Content-Type", "video/mp4");
+      const stream = fs.createReadStream(outputPath);
+      stream.pipe(res);
+      stream.on("close", cleanup);
+      stream.on("error", () => {
+        cleanup();
+        if (!res.headersSent) res.status(500).json({ error: "Streaming failed" });
+      });
+    } catch (err) {
+      console.error("[generate-share-video] failed:", err);
+      cleanup();
+      if (!res.headersSent) {
+        res.status(500).json({ error: "render_failed", message: "Couldn't build the share video. Try again shortly." });
       }
     }
   });

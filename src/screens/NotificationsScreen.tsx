@@ -8,12 +8,15 @@ import { useFirebase } from '../components/FirebaseProvider';
 import { useThemes } from '../components/themes';
 import { themeWinnerId, belongsToOccurrence } from '../components/results';
 import { WinnerCelebrationModal } from '../components/WinnerCelebrationModal';
+import { ensureShareVideo } from '../components/shareVideo';
 
 interface CelebrationData {
+  catId: string;
   catName: string;
   videoUrl: string;
   themeName: string;
   votes: number;
+  shareVideoUrl?: string;
 }
 
 interface NotifItem {
@@ -125,11 +128,23 @@ export function NotificationsScreen() {
 
               if (isWinner && myCat.videoUrl) {
                 const cd: CelebrationData = {
+                  catId: myCat.id,
                   catName: myCat.name || 'Your cat',
                   videoUrl: myCat.videoUrl,
                   themeName: theme.title,
                   votes,
+                  shareVideoUrl: myCat.shareVideoUrl,
                 };
+                // Fire in the background the moment the win is discovered —
+                // there's no server-side "you won" event to hook into (wins
+                // are just the highest score once voting settles), so this
+                // is the earliest point the app actually knows. By the time
+                // someone opens this notification and taps Share, it's
+                // usually already rendered; ensureShareVideo() no-ops if a
+                // shareVideoUrl already exists.
+                if (!cd.shareVideoUrl) {
+                  ensureShareVideo(myCat, theme.title, votes).catch(() => {});
+                }
                 winners.push({
                   id: `winner-${theme.id}-${myCat.id}`,
                   kind: 'winner',
@@ -202,10 +217,12 @@ export function NotificationsScreen() {
   if (celebration) {
     return (
       <WinnerCelebrationModal
+        catId={celebration.catId}
         catName={celebration.catName}
         videoUrl={celebration.videoUrl}
         themeName={celebration.themeName}
         votes={celebration.votes}
+        shareVideoUrl={celebration.shareVideoUrl}
         onClose={() => setCelebration(null)}
       />
     );

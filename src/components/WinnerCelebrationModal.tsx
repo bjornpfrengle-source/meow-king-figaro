@@ -1,12 +1,16 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { motion } from 'motion/react';
-import { Share2 } from 'lucide-react';
+import { Share2, Loader2 } from 'lucide-react';
+import { ensureShareVideo } from './shareVideo';
+import { useFirebase } from './FirebaseProvider';
 
 interface Props {
+  catId: string;
   catName: string;
   videoUrl: string;
   themeName: string;
   votes: number;
+  shareVideoUrl?: string;
   onClose: () => void;
 }
 
@@ -60,9 +64,16 @@ function playFanfare() {
   } catch (_) {}
 }
 
-export function WinnerCelebrationModal({ catName, videoUrl, themeName, votes, onClose }: Props) {
+export function WinnerCelebrationModal({ catId, catName, videoUrl, themeName, votes, shareVideoUrl: initialShareVideoUrl, onClose }: Props) {
+  const { user } = useFirebase();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [shared, setShared] = useState(false);
+  const [shareVideoUrl, setShareVideoUrl] = useState(initialShareVideoUrl);
+  // Only true while THIS component is the one waiting on generation — if
+  // NotificationsScreen already kicked it off in the background and it's
+  // still not done by the time someone opens this modal, we wait here too.
+  const [preparing, setPreparing] = useState(!initialShareVideoUrl);
+  const [prepFailed, setPrepFailed] = useState(false);
 
   // Chosen once per mount so it doesn't reshuffle on re-render mid-celebration.
   const victoryLine = useMemo(
@@ -75,15 +86,37 @@ export function WinnerCelebrationModal({ catName, videoUrl, themeName, votes, on
     videoRef.current?.play().catch(() => {});
   }, []);
 
+  useEffect(() => {
+    if (shareVideoUrl) return;
+    if (!user?.uid) { setPreparing(false); return; }
+    let cancelled = false;
+    ensureShareVideo({ id: catId, ownerId: user.uid, videoUrl, name: catName }, themeName, votes)
+      .then((url) => {
+        if (cancelled) return;
+        if (url) setShareVideoUrl(url);
+        else setPrepFailed(true);
+      })
+      .finally(() => { if (!cancelled) setPreparing(false); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const shareWin = async () => {
-    const url = 'https://meow-king-figaro-production.up.railway.app';
+    if (!shareVideoUrl) return;
     const text = `👑 ${catName} just won "${themeName}" with ${votes} vote${votes !== 1 ? 's' : ''} on Cat Chaos Arena!`;
     try {
-      // iOS gives the native share sheet here (Messages, Instagram, etc.).
-      if (navigator.share) {
-        await navigator.share({ title: 'Meow King!', text, url });
+      const res = await fetch(shareVideoUrl);
+      const blob = await res.blob();
+      const file = new File([blob], `${catName.replace(/[^a-z0-9]/gi, '-') || 'meow-king'}.mp4`, { type: 'video/mp4' });
+
+      // Real video attachment in the native share sheet — no Railway link
+      // that makes people log in to see what it even is.
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'Meow King!', text });
+      } else if (navigator.share) {
+        await navigator.share({ title: 'Meow King!', text });
       } else {
-        await navigator.clipboard.writeText(`${text} ${url}`);
+        await navigator.clipboard.writeText(text);
         setShared(true);
         setTimeout(() => setShared(false), 2000);
       }
@@ -168,10 +201,20 @@ export function WinnerCelebrationModal({ catName, videoUrl, themeName, votes, on
         >
           <button
             onClick={shareWin}
-            className="w-full bg-white/15 backdrop-blur-md border border-white/30 text-white font-black py-4 rounded-2xl text-lg active:scale-95 transition-transform flex items-center justify-center gap-2"
+            disabled={preparing || (!shareVideoUrl && !prepFailed)}
+            className="w-full bg-white/15 backdrop-blur-md border border-white/30 text-white font-black py-4 rounded-2xl text-lg active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-60"
           >
-            <Share2 className="w-5 h-5" />
-            {shared ? 'Copied!' : 'Share the win'}
+            {preparing ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Preparing your video…
+              </>
+            ) : (
+              <>
+                <Share2 className="w-5 h-5" />
+                {shared ? 'Copied!' : prepFailed && !shareVideoUrl ? 'Share unavailable — try again later' : 'Share the win'}
+              </>
+            )}
           </button>
           <button
             onClick={onClose}

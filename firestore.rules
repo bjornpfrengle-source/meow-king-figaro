@@ -175,11 +175,15 @@ service cloud.firestore {
         (
           // Owner can update name, cry, videoUrl but NOT score or createdAt
           (resource.data.ownerId == request.auth.uid &&
-           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'cry', 'videoUrl', 'thumbnailUrl']) &&
+           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'cry', 'videoUrl', 'thumbnailUrl', 'shareVideoUrl']) &&
            isValidString('name', 1, 50) &&
            isValidOptionalString('cry', 0, 100) &&
            isValidOptionalString('videoUrl', 1, 2000) &&
-           isValidOptionalString('thumbnailUrl', 0, 2000))
+           isValidOptionalString('thumbnailUrl', 0, 2000) &&
+           // Packaged "share the win" video, rendered after the fact once a
+           // cat wins — never present at create time, only stamped on via
+           // this update path.
+           isValidOptionalString('shareVideoUrl', 0, 2000))
           ||
           // Anyone can increment score by 1 if they are voting
           (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['score']) &&
