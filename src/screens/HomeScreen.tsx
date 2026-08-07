@@ -570,7 +570,15 @@ export function HomeScreen() {
             <div className="flex justify-between gap-4">
               {recentWinners.map((cat, index) => (
                 <motion.div layout key={cat.id} className="flex flex-col items-center flex-1">
-                  <div className={`relative w-full aspect-square rounded-full border-4 p-1 mb-2 ${index === 0 ? 'border-yellow-400' : 'border-neutral-200'}`}>
+                  {/* Deliberately a tall oval (3/5), not a circle. This used to
+                      be aspect-square, but the video inside pushed the frame
+                      taller than square and it rendered as an ellipse — which
+                      is the look we actually want. Relying on that overflow
+                      meant the shape came out differently in Chrome vs
+                      WKWebView, so the ratio is now stated outright and both
+                      render identically. Change this number, not the video, if
+                      the shape ever needs adjusting. */}
+                  <div className={`relative w-full aspect-[3/5] rounded-full border-4 p-1 mb-2 ${index === 0 ? 'border-yellow-400' : 'border-neutral-200'}`}>
                     {/* Lazy: these are ~80px circles that were each pulling a
                         full 720p clip on load, starving the Trending hero
                         above them of bandwidth and decode slots. */}
