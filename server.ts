@@ -311,12 +311,25 @@ async function startServer() {
       );
       fs.writeFileSync(overlayPath, overlayPng);
 
-      // Two inputs: the looped source clip, and the text/logo overlay PNG.
+      // Two inputs: the source clip, and the text/logo overlay PNG.
       // scale2ref resizes the PNG (rendered at a fixed 720x1280 canvas) to
       // exactly match the video's real post-scale dimensions before
       // overlay — without it a portrait vs. landscape source would misalign
       // the text. Confetti (core drawbox filters, no external deps) is drawn
       // onto the video track before the overlay is composited on top.
+      //
+      // No -stream_loop here on purpose. It was there to guarantee a full
+      // SHARE_VIDEO_SECONDS even for short clips, but the very first real
+      // share came back as a single frozen frame for the whole 15s (only
+      // ever verified against a solid-colour test video, which looks
+      // "frozen" whether it's actually playing or not — a real testing
+      // gap). -stream_loop re-demuxes the input, which is more sensitive to
+      // ffmpeg version differences than anything else in this chain, and
+      // Railway's ffmpeg-static binary is a different major version than
+      // what's testable locally. Simpler and safer: don't loop. A clip
+      // shorter than 15s just makes a shorter share video — nobody will
+      // notice a 9s clip instead of 15s, but everybody would notice a
+      // frozen video.
       const filterComplex =
         `[0:v]scale='min(720,iw)':-2,${buildConfettiFilter()}[bg];` +
         `[1:v][bg]scale2ref[fg][bg2];` +
@@ -324,7 +337,6 @@ async function startServer() {
 
       await new Promise<void>((resolve, reject) => {
         ffmpeg(inputPath)
-          .inputOptions(["-stream_loop", "-1"])
           .input(overlayPath)
           .complexFilter(filterComplex, [])
           .outputOptions([
