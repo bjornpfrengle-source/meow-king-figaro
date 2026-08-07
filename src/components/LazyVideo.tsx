@@ -87,7 +87,15 @@ export function LazyVideo({
   }, [rootMargin]);
 
   return (
-    <div ref={wrapRef} className={wrapperClassName ?? className}>
+    // absolute + inset-0 (not w-full/h-full as a normal-flow block) is
+    // deliberate: this div sits inside an aspect-ratio- or fixed-size parent,
+    // and a normal-flow child's h-full can fail to resolve against a
+    // ratio-derived parent height (percentage-height-of-auto ambiguity),
+    // silently falling back to the <video>'s own intrinsic aspect ratio
+    // instead. That turned circular avatars into ovals on Chrome/Blink while
+    // looking fine on Safari/WebKit, which resolves it differently. Absolute
+    // positioning against the `relative` parent sizes unambiguously either way.
+    <div ref={wrapRef} className={`absolute inset-0 ${wrapperClassName ?? className ?? ''}`}>
       {visible ? (
         <video
           src={src}

@@ -120,7 +120,7 @@ export function HallOfFameScreen() {
               </div>
 
               {/* Tappable video / thumbnail */}
-              <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-white shadow-sm shrink-0 bg-black">
+              <div className="relative w-16 h-16 rounded-2xl overflow-hidden border-2 border-white shadow-sm shrink-0 bg-black">
                 {cat.videoUrl ? (
                   /* This list runs to 50 entries — every one was autoplaying a
                      full clip inside a 64px tile on mount. */
