@@ -287,7 +287,14 @@ export function VoteScreen() {
             <video
               key={src}
               src={src}
-              className="flex-1 w-full object-cover"
+              // min-h-0 overrides flexbox's default min-height:auto, which
+              // was letting each video's intrinsic 720x1280 aspect ratio act
+              // as a size floor — both videos insisted on ~683px tall at
+              // this width regardless of flex-1, so the pair overflowed the
+              // container (only overflow-hidden on the OUTER wrapper) and
+              // got clipped to "all of video 1 + a sliver of video 2" instead
+              // of an even 50/50 split.
+              className="flex-1 min-h-0 w-full object-cover"
               autoPlay
               loop
               muted
