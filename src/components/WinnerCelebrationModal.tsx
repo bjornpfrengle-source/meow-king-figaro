@@ -69,6 +69,7 @@ export function WinnerCelebrationModal({ catId, catName, videoUrl, themeName, vo
   const videoRef = useRef<HTMLVideoElement>(null);
   const [shared, setShared] = useState(false);
   const [shareVideoUrl, setShareVideoUrl] = useState(initialShareVideoUrl);
+  const [shareError, setShareError] = useState<string | null>(null);
   // Only true while THIS component is the one waiting on generation — if
   // NotificationsScreen already kicked it off in the background and it's
   // still not done by the time someone opens this modal, we wait here too.
@@ -103,25 +104,48 @@ export function WinnerCelebrationModal({ catId, catName, videoUrl, themeName, vo
 
   const shareWin = async () => {
     if (!shareVideoUrl) return;
+    setShareError(null);
     const text = `👑 ${catName} just won "${themeName}" with ${votes} vote${votes !== 1 ? 's' : ''} on Cat Chaos Arena!`;
+    // Logged at every stage on purpose — the first attempt at this failed
+    // completely silently (button did nothing, nothing visible to debug
+    // from), so this is deliberately verbose until it's confirmed working
+    // on a real device via Safari's Web Inspector console.
+    console.log('[shareWin] navigator.share:', typeof navigator.share, 'canShare:', typeof navigator.canShare);
     try {
+      console.log('[shareWin] fetching', shareVideoUrl);
       const res = await fetch(shareVideoUrl);
+      console.log('[shareWin] fetch status', res.status);
       const blob = await res.blob();
+      console.log('[shareWin] blob size', blob.size, blob.type);
       const file = new File([blob], `${catName.replace(/[^a-z0-9]/gi, '-') || 'meow-king'}.mp4`, { type: 'video/mp4' });
+
+      const canShareFiles = navigator.canShare?.({ files: [file] });
+      console.log('[shareWin] canShare({files}) =', canShareFiles);
 
       // Real video attachment in the native share sheet — no Railway link
       // that makes people log in to see what it even is.
-      if (navigator.canShare?.({ files: [file] })) {
+      if (canShareFiles) {
         await navigator.share({ files: [file], title: 'Meow King!', text });
+        console.log('[shareWin] navigator.share (with file) resolved');
       } else if (navigator.share) {
         await navigator.share({ title: 'Meow King!', text });
-      } else {
+        console.log('[shareWin] navigator.share (text only) resolved');
+      } else if (navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(text);
+        console.log('[shareWin] clipboard fallback used');
         setShared(true);
         setTimeout(() => setShared(false), 2000);
+      } else {
+        throw new Error('No share method available (navigator.share and clipboard both missing)');
       }
-    } catch (_) {
-      // User dismissed the share sheet — not an error worth surfacing.
+    } catch (err: any) {
+      // AbortError = user dismissed the share sheet themselves, not a bug.
+      if (err?.name === 'AbortError') {
+        console.log('[shareWin] user dismissed the share sheet');
+        return;
+      }
+      console.error('[shareWin] failed:', err);
+      setShareError(err?.message || 'Sharing failed on this device.');
     }
   };
 
@@ -216,6 +240,9 @@ export function WinnerCelebrationModal({ catId, catName, videoUrl, themeName, vo
               </>
             )}
           </button>
+          {shareError && (
+            <p className="text-center text-white/70 text-xs font-medium px-2">{shareError}</p>
+          )}
           <button
             onClick={onClose}
             className="w-full bg-gradient-to-r from-pink-500 to-orange-400 text-white font-black py-4 rounded-2xl text-xl shadow-2xl active:scale-95 transition-transform"
