@@ -89,7 +89,10 @@ export function OnboardingScreen() {
         // when a name was actually entered, since competition entries (with
         // video) are created later via the upload flow — we don't want a
         // phantom video-less cat here.
-        const profileUpdate: Record<string, any> = { allowRepost };
+        // hasOnboarded is what stops this flow reappearing on every launch.
+        // It must be written here, at the end of the flow, and nowhere else —
+        // the root route in App.tsx keys off it entirely.
+        const profileUpdate: Record<string, any> = { allowRepost, hasOnboarded: true };
         if (catName.trim()) {
           profileUpdate.catName = catName.trim();
           profileUpdate.catBreed = catBreed.trim();

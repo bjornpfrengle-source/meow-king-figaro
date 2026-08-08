@@ -29,6 +29,12 @@ export interface UserProfile {
   isFoundingMember?: boolean;
   /** Which arena this account plays in. V1 is always 'cat'. */
   species?: Species;
+  /**
+   * Set once, when the user finishes the onboarding flow. The root route reads
+   * this to decide between /onboarding and /home. Without it the app sent
+   * everyone through onboarding on every single cold start — see App.tsx.
+   */
+  hasOnboarded?: boolean;
 }
 
 // Owner account that is always treated as an admin (matches firestore.rules)
