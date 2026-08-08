@@ -80,6 +80,34 @@ now, but explains the naming if it comes up again.
   `request.resource.size` refuses deletes. Deletes need their own
   `allow delete` clause — see `storage.rules`.
 
+## Sign in with Apple — the audience gotcha
+
+Apple sign-in is **native**, not web: `AppDelegate.swift` runs
+`ASAuthorizationAppleIDProvider`, then hands the id token and raw nonce to the
+web layer via `window.__onAppleSignIn`. Because it's native, Apple mints the
+token with an audience of the **bundle id** (`com.catchaosarena.app`), not a
+Services ID.
+
+Firebase only accepts an Apple token whose audience belongs to the project. The
+project originally had **only a web app registered** (`1:74285208591:web:...`),
+so the bundle id was an unknown audience and every Apple sign-in failed with:
+
+```
+auth/invalid-credential: The audience in ID Token [com.catchaosarena.app]
+does not match the expected audience.
+```
+
+**Fixed 8 Aug 2026** by registering an iOS app in Firebase (Project settings →
+General → Add app → iOS+ → bundle id `com.catchaosarena.app`). Nothing else in
+that flow was needed — no `GoogleService-Info.plist`, no Firebase iOS SDK, no
+Xcode rebuild, no resubmission, since the app reaches Firebase through the web
+layer. Registering the bundle id purely teaches Firebase to trust that
+audience. Confirmed working by an external tester the same day.
+
+The Swift side was correct the whole time. If Apple sign-in breaks again, check
+the Firebase app registration and the App ID's Sign in with Apple capability
+before touching `AppDelegate.swift`.
+
 ## Themes
 
 Themes are fixed-date documents in the `themes` collection. **They do not
