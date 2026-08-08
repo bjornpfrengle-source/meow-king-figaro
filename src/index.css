@@ -25,3 +25,30 @@
   from { transform: scale(1); }
   to   { transform: scale(1.12); }
 }
+
+/* Glowing pulse for ShapedFrame (heart / paw cards on Home).
+   drop-shadow rather than box-shadow so the glow traces the masked silhouette
+   instead of a rectangle. Two stacked shadows give the glow some depth without
+   needing a second element. --frame-glow is set per-instance in React. */
+@keyframes shaped-frame-pulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 4px var(--frame-glow)) drop-shadow(0 0 10px var(--frame-glow));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 10px var(--frame-glow)) drop-shadow(0 0 22px var(--frame-glow));
+    transform: scale(1.035);
+  }
+}
+.shaped-frame-pulse {
+  animation: shaped-frame-pulse 2.4s ease-in-out infinite;
+  will-change: filter, transform;
+}
+/* Respect the system setting — a permanently throbbing card is genuinely
+   unpleasant for anyone sensitive to motion. Keep the glow, drop the movement. */
+@media (prefers-reduced-motion: reduce) {
+  .shaped-frame-pulse {
+    animation: none;
+    filter: drop-shadow(0 0 8px var(--frame-glow));
+  }
+}

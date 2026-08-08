@@ -10,6 +10,9 @@ import { ReportModal } from '../components/ReportModal';
 import { BadgedAvatar } from '../components/BadgedAvatar';
 import { LazyVideo } from '../components/LazyVideo';
 import { topBadgeId } from '../components/rewards';
+import { FOUNDING_PERIOD_OPEN } from '../components/limits';
+import { YourCatToday } from '../components/YourCatToday';
+import { NeedsAVote } from '../components/NeedsAVote';
 
 interface Cat {
   id: string;
@@ -54,17 +57,16 @@ function seededShuffle<T>(arr: T[], seed: number): T[] {
 
 import { useFirebase } from '../components/FirebaseProvider';
 
-// A believable "cats competing today" base: modest, varies by day, climbs
-// through the day. Computed synchronously so the counter never flashes 0.
-function computeActivityBase() {
-  const now = new Date();
-  const dayIndex = Math.floor(now.getTime() / 86400000);
-  const seed = Math.abs(Math.sin(dayIndex * 12.9898) * 43758.5453) % 1; // stable per day
-  const dailyBase = 850 + Math.floor(seed * 550); // ~850–1400, varies daily
-  const frac = (now.getHours() * 60 + now.getMinutes()) / 1440;
-  const curve = 0.45 + 0.55 * frac; // climbs as the day goes on
-  return Math.round(dailyBase * curve);
-}
+/**
+ * The stats bar used to show an invented number here — a per-day random 850
+ * to 1400 that climbed through the day, with the real count added on top. It
+ * was scaffolding to keep an empty arena from looking dead, but it was a
+ * factual claim made to users, and it would have gone on the App Store.
+ *
+ * It's now a real count. The honest framing problem it was hiding is solved a
+ * different way: while the arena is small, lead with founding-member scarcity
+ * (which is true, and flattering) rather than a crowd that isn't there.
+ */
 
 /**
  * Home's data, kept alive across navigation.
@@ -94,7 +96,6 @@ export function HomeScreen() {
   const { user, userProfile, signIn, isPremium } = useFirebase();
   const { active, upcoming } = useThemes();
   const [topCats, setTopCats] = useState<Cat[]>(homeCache.topCats ?? []);
-  const [totalCats, setTotalCats] = useState(computeActivityBase);
   const [realCatCount, setRealCatCount] = useState(homeCache.catCount ?? 0);
   // Only show the spinner on a genuinely cold start. Returning to Home with
   // cached data should paint immediately, not flash a loader.
@@ -136,14 +137,9 @@ export function HomeScreen() {
     check();
   }, []);
 
-  // Ticks the counter up over time so it feels live (starts from the base,
-  // which is already the initial state — no flash of 0).
-  useEffect(() => {
-    const id = setInterval(() => {
-      setTotalCats((c) => c + (Math.random() < 0.65 ? Math.floor(Math.random() * 3) : 0));
-    }, 5000);
-    return () => clearInterval(id);
-  }, []);
+  // (Removed: a 5s interval that randomly incremented the invented counter to
+  // make it "feel live". The counter is a real figure now, so a timer that
+  // inflates it would be straightforwardly false rather than decorative.)
   const trendingVideoRef = useRef<HTMLVideoElement>(null);
 
   const shareCat = async (name: string, cry?: string) => {
@@ -470,10 +466,28 @@ export function HomeScreen() {
                 <Plus className="w-4 h-4" />
               </div>
             </div>
-            <span className="ml-3 text-teal-600 font-bold text-sm">{(totalCats + realCatCount).toLocaleString()} cats competing today</span>
+            <span className="ml-3 text-teal-600 font-bold text-sm">
+              {realCatCount.toLocaleString()} {realCatCount === 1 ? 'cat has' : 'cats have'} entered the arena
+            </span>
           </div>
           <TrendingUp className="w-5 h-5 text-teal-500" />
         </div>
+
+        {/* Founding-member framing. While the arena is genuinely small, "you're
+            early" is both true and more appealing than a headcount — and it
+            disappears on its own when FOUNDING_PERIOD_OPEN is flipped off. */}
+        {FOUNDING_PERIOD_OPEN && userProfile?.isFoundingMember && (
+          <div className="flex items-center gap-2 -mt-4 mb-8 px-4 py-2.5 rounded-full bg-amber-50 border border-amber-200">
+            <Crown className="w-4 h-4 text-amber-500 fill-amber-500 shrink-0" />
+            <span className="text-amber-700 font-bold text-xs">
+              You're a founding member — unlimited uploads, for life
+            </span>
+          </div>
+        )}
+
+        <YourCatToday activeTheme={active} />
+
+        <NeedsAVote activeTheme={active} />
 
         {/* Trending Mayhem */}
         <div className="mb-8">
